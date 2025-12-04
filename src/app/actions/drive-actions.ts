@@ -71,14 +71,11 @@ const getOrderStatusCategory = (status: OrderStatus): 'Active' | 'Delivered' | '
 
 export async function getDriveFilesAction(): Promise<{ error?: string; files: any[] }> {
   const folderId = process.env.GOOGLE_FOLDER_ID;
-  if (!folderId) {
-    return {
-      error: 'GOOGLE_FOLDER_ID environment variable is not set.',
-      files: [],
-    };
-  }
   
-  const query = `trashed=false and '${folderId}' in parents`;
+  // Updated query: Search for files in the specified folder OR in the root if they have no parents.
+  const query = folderId
+    ? `trashed=false and ('${folderId}' in parents or 'root' in parents and not parents in 'root')`
+    : `trashed=false and 'root' in parents and not parents in 'root'`;
   
   try {
     const drive = getDriveClient();
