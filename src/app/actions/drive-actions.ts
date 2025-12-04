@@ -69,13 +69,16 @@ const getOrderStatusCategory = (status: OrderStatus): 'Active' | 'Delivered' | '
     return 'Cancelled/Rejected';
 };
 
-export async function getDriveFilesAction() {
+export async function getDriveFilesAction(): Promise<{ error?: string; files: any[] }> {
   const folderId = process.env.GOOGLE_FOLDER_ID;
   if (!folderId) {
-    throw new Error('GOOGLE_FOLDER_ID environment variable is not set.');
+    return {
+      error: 'GOOGLE_FOLDER_ID environment variable is not set.',
+      files: [],
+    };
   }
   
-  let query = `trashed=false and '${folderId}' in parents`;
+  const query = `trashed=false and '${folderId}' in parents`;
   
   try {
     const drive = getDriveClient();
@@ -99,7 +102,7 @@ export async function getDriveFilesAction() {
         }
     });
 
-    return (driveResponse.data.files || []).map((file) => {
+    const files = (driveResponse.data.files || []).map((file) => {
         const orderStatus = file.id ? fileIdToOrderStatus.get(file.id) : undefined;
         let statusCategory: 'Active' | 'Delivered' | 'Cancelled/Rejected' | 'Unused' | null = null;
         if(orderStatus) {
@@ -117,6 +120,8 @@ export async function getDriveFilesAction() {
           orderStatus: statusCategory
         }
     });
+
+    return { files };
   } catch (error: any) {
     console.error('Error fetching Drive files:', error);
     throw new Error('Could not fetch files from Google Drive. Check server logs and environment variables.');

@@ -81,12 +81,17 @@ export default function ManageDrivePage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fetchedUsage, fetchedFiles] = await Promise.all([
+      const [fetchedUsage, filesResult] = await Promise.all([
         getDriveUsageAction(),
         getDriveFilesAction(),
       ]);
+
+      if (filesResult.error) {
+        throw new Error(filesResult.error);
+      }
+      
       setUsage(fetchedUsage);
-      setFiles(fetchedFiles);
+      setFiles(filesResult.files);
     } catch (error: any) {
       toast({
         variant: "destructive",
