@@ -70,12 +70,8 @@ const getOrderStatusCategory = (status: OrderStatus): 'Active' | 'Delivered' | '
 };
 
 export async function getDriveFilesAction(): Promise<{ error?: string; files: any[] }> {
-  const folderId = process.env.GOOGLE_FOLDER_ID;
-  
-  // Updated query: Search for files in the specified folder OR in the root if they have no parents.
-  const query = folderId
-    ? `trashed=false and ('${folderId}' in parents or 'root' in parents and not parents in 'root')`
-    : `trashed=false and 'root' in parents and not parents in 'root'`;
+  // Simplified query to only search for files in the root of "My Drive".
+  const query = `trashed=false and 'root' in parents`;
   
   try {
     const drive = getDriveClient();

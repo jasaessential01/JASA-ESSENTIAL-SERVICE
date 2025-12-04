@@ -29,12 +29,8 @@ export async function POST(req: NextRequest) {
         });
 
         const drive = getDriveClient();
-        const folderId = process.env.GOOGLE_FOLDER_ID || undefined;
         
         const fileMetadata: any = { name: file.name };
-        if (folderId) {
-            fileMetadata.parents = [folderId];
-        }
 
         const media = {
             mimeType: file.type,
