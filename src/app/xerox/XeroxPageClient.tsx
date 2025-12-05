@@ -3,18 +3,9 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { getXeroxServices, getXeroxOptions, getPaperSamples } from "@/lib/data";
-import type { XeroxService, XeroxOption, XeroxDocument, PaperSample } from "@/lib/types";
+import type { XeroxService, XeroxOption, PaperSample } from "@/lib/types";
 import { HARDCODED_XEROX_OPTIONS } from "@/lib/xerox-options";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-  TableHeader,
-  TableHead
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, Loader2, FileUp, XCircle, FileText, ShoppingCart, Plus, Minus, Pencil, ListOrdered, Images, Link as LinkIcon, CheckCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,6 +32,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+  TableHeader,
+  TableHead
+} from "@/components/ui/table";
 
 
 // Set up worker for pdf.js
@@ -519,39 +518,62 @@ export default function XeroxPageClient() {
 
   const DocumentCard = ({ document, index }: { document: DocumentState, index: number }) => {
     const singleDocPrice = documentPrices.find(p => p.id === document.id)?.price || 0;
+    const pricePerPage = document.fileDetails?.pages ? (singleDocPrice / document.quantity) / document.fileDetails.pages : 0;
     
     return (
         <Card className="relative">
-            <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 flex-shrink-0" onClick={() => removeDocument(document.id)}>
-                <XCircle className="h-5 w-5 text-red-500" />
-            </Button>
-            <CardHeader className="p-4">
-                <div className="flex items-start gap-4">
-                    <div className="h-20 w-20 flex-shrink-0 flex items-center justify-center bg-muted rounded-md">
-                        {document.fileDetails?.pages === undefined ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/> : <FileText className="h-10 w-10 text-muted-foreground" />}
-                    </div>
-                    <div className="flex-grow min-w-0">
-                        <p className="font-semibold truncate">Document {index + 1}</p>
-                        <p className="text-sm text-muted-foreground capitalize truncate">{document.fileDetails?.name || "Processing..."}</p>
-                        {document.fileDetails?.pages !== undefined && (
-                            <p className="text-sm text-muted-foreground">Pages: {document.fileDetails.pages}</p>
-                        )}
-                    </div>
-                </div>
+            <CardHeader className="p-4 flex flex-row justify-between items-center bg-muted/50">
+                 <p className="font-semibold truncate">Document {index + 1}</p>
+                 <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removeDocument(document.id)}>
+                    <XCircle className="h-5 w-5 text-red-500" />
+                </Button>
             </CardHeader>
-            <CardFooter className="flex justify-between items-center bg-muted/50 p-4">
-                <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold">Rs {singleDocPrice.toFixed(2)}</p>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setEditingDocument(document)}>
-                        <Pencil className="mr-2 h-4 w-4"/> Edit
-                    </Button>
+
+            <CardContent className="p-4 space-y-4">
+                <div className="p-2 border rounded-md w-full overflow-x-auto no-scrollbar">
+                    <p className="text-sm font-medium whitespace-nowrap">{document.fileDetails?.name || "Processing..."}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => updateDocumentState(document.id, { quantity: Math.max(1, document.quantity - 1) })}> <Minus className="h-4 w-4" /> </Button>
-                    <span className="font-bold w-10 text-center">{document.quantity}</span>
-                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => updateDocumentState(document.id, { quantity: document.quantity + 1 })}> <Plus className="h-4 w-4" /> </Button>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="p-2 border rounded-md">
+                        <p className="text-xs text-muted-foreground">Document Type</p>
+                        <p className="text-sm font-medium uppercase">{document.fileDetails?.type.split('/')[1] || 'N/A'}</p>
+                    </div>
+                     <div className="p-2 border rounded-md">
+                        <p className="text-xs text-muted-foreground">No. of Pages</p>
+                        {document.fileDetails?.pages === undefined ? <Loader2 className="h-5 w-5 animate-spin"/> : <p className="text-sm font-medium">{document.fileDetails.pages}</p>}
+                    </div>
                 </div>
-            </CardFooter>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col">
+                        <Label className="text-xs mb-1">Paper Type</Label>
+                        <Select value={document.selectedPaperType} onValueChange={(v) => updateDocumentState(document.id, {selectedPaperType: v})}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {paperTypes.map(pt => <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex flex-col">
+                        <Label className="text-xs mb-1">Other Options</Label>
+                        <Button type="button" variant="outline" onClick={() => setEditingDocument(document)}>
+                            <Pencil className="mr-2 h-4 w-4"/> Edit Options
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="p-2 border rounded-md">
+                        <p className="text-xs text-muted-foreground">Price per page</p>
+                        <p className="text-sm font-medium">Rs {pricePerPage.toFixed(2)}</p>
+                    </div>
+                     <div className="p-2 border rounded-md">
+                        <p className="text-xs text-muted-foreground">Final Price</p>
+                        <p className="text-sm font-medium">Rs {singleDocPrice.toFixed(2)}</p>
+                    </div>
+                </div>
+
+            </CardContent>
         </Card>
     );
   };
@@ -559,17 +581,14 @@ export default function XeroxPageClient() {
   const FinalEstimation = () => {
     if (documents.length === 0) return null;
 
-    const getOptionName = (type: keyof typeof allOptions | 'paperType' | 'colorOption' | 'formatType' | 'printRatio', id: string): string => {
+    const getOptionName = (type: 'paperType' | 'colorOption' | 'formatType' | 'printRatio' | 'bindingType' | 'laminationType', id: string): string => {
         if (!id || id === 'none') return '';
         if (type === 'paperType') return paperTypes.find(o => o.id === id)?.name || '';
         if (type === 'colorOption') return HARDCODED_XEROX_OPTIONS.colorOptions.find(o => o.id === id)?.name || '';
         if (type === 'formatType') return HARDCODED_XEROX_OPTIONS.formatTypes.find(o => o.id === id)?.name || '';
         if (type === 'printRatio') return HARDCODED_XEROX_OPTIONS.printRatios.find(o => o.id === id)?.name || '';
-        
-        const optionsList = allOptions[type as keyof typeof allOptions];
-        if (optionsList) {
-            return optionsList.find(o => o.id === id)?.name || '';
-        }
+        if (type === 'bindingType') return allOptions.bindingTypes.find(o => o.id === id)?.name || '';
+        if (type === 'laminationType') return allOptions.laminationTypes.find(o => o.id === id)?.name || '';
         return '';
     };
 
@@ -587,8 +606,8 @@ export default function XeroxPageClient() {
                 { key: 'Color', value: getOptionName('colorOption', doc.selectedColorOption) },
                 { key: 'Format', value: getOptionName('formatType', doc.selectedFormatType) },
                 { key: 'Ratio', value: getOptionName('printRatio', doc.selectedPrintRatio) },
-                { key: 'Binding', value: getOptionName('bindingTypes', doc.selectedBindingType) },
-                { key: 'Lamination', value: getOptionName('laminationTypes', doc.selectedLaminationType) },
+                { key: 'Binding', value: getOptionName('bindingType', doc.selectedBindingType) },
+                { key: 'Lamination', value: getOptionName('laminationType', doc.selectedLaminationType) },
               ].filter(d => d.value);
 
               return (
@@ -807,7 +826,7 @@ export default function XeroxPageClient() {
 
   return (
     <>
-    <Dialog open={isUploading} onOpenChange={setIsUploading}>
+    <Dialog open={isUploading}>
         <DialogContent hideCloseButton={true}>
             <DialogHeader>
                 <DialogTitle>{isRedirecting ? 'Upload Complete!' : 'Uploading Documents...'}</DialogTitle>
@@ -854,8 +873,8 @@ export default function XeroxPageClient() {
             </div>
             {!isRedirecting && (
                  <DialogFooter>
-                    <Button variant="outline" disabled={!allUploadsSuccessful} onClick={() => handleCheckout()}>
-                        Proceed with successful uploads
+                    <Button variant="outline" disabled>
+                        Cancel
                     </Button>
                 </DialogFooter>
             )}
