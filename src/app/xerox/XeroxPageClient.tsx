@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
@@ -79,9 +80,10 @@ type DocumentState = {
 type UploadStatus = {
     status: 'pending' | 'uploading' | 'success' | 'error';
     progress: number;
-    url?: string;
+    url?: string | null; // Allow null for manual collection
     error?: string;
 };
+
 
 const MAX_WORDS = 100;
 
@@ -276,7 +278,6 @@ export default function XeroxPageClient() {
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<Record<number, UploadStatus>>({});
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
 
   useEffect(() => {
@@ -481,20 +482,22 @@ export default function XeroxPageClient() {
                         resolve(response.url);
                     } else {
                         const errorResponse = JSON.parse(xhr.responseText);
+                        const errorMessage = errorResponse.error || 'Upload failed due to a server error.';
                         setUploadStatus(prev => ({
                             ...prev,
-                            [doc.id]: { status: 'error', progress: 0, error: errorResponse.error || 'Upload failed' }
+                            [doc.id]: { status: 'error', progress: 0, error: errorMessage }
                         }));
-                        reject(new Error(errorResponse.error || `Upload failed for ${doc.file.name}`));
+                        reject(new Error(errorMessage));
                     }
                 };
 
                 xhr.onerror = () => {
+                     const errorMessage = "Your internet seems slow. Please check your connection.";
                     setUploadStatus(prev => ({
                         ...prev,
-                        [doc.id]: { status: 'error', progress: 0, error: 'Network error' }
+                        [doc.id]: { status: 'error', progress: 0, error: errorMessage }
                     }));
-                    reject(new Error("Network error during upload."));
+                    reject(new Error(errorMessage));
                 };
 
                 xhr.send(fd);
@@ -508,9 +511,37 @@ export default function XeroxPageClient() {
         }
     };
     
+    const handleProceedToCheckout = () => {
+        const jobsForStorage: StoredXeroxJob[] = documents.map((doc, index) => {
+            const priceInfo = documentPrices.find(p => p.id === doc.id);
+            return {
+                id: `${Date.now()}-${doc.id}`,
+                fileDetails: {
+                    name: doc.fileDetails!.name,
+                    type: doc.fileDetails!.type,
+                    url: uploadStatus[doc.id]?.url || '', // Use stored URL or empty if failed
+                },
+                pageCount: doc.fileDetails!.pages || 0,
+                price: priceInfo ? priceInfo.finalPrice / doc.quantity : 0,
+                config: {
+                    paperType: doc.selectedPaperType,
+                    colorOption: doc.selectedColorOption,
+                    formatType: doc.selectedFormatType,
+                    printRatio: doc.selectedPrintRatio,
+                    bindingType: doc.selectedBindingType,
+                    laminationType: doc.selectedLaminationType,
+                    quantity: doc.quantity,
+                    message: doc.message,
+                }
+            };
+        });
+
+        sessionStorage.setItem('xeroxCheckoutJobs', JSON.stringify(jobsForStorage));
+        router.push('/xerox/checkout');
+    };
+    
     const handleCheckout = async () => {
         setIsUploading(true);
-        setIsRedirecting(false);
 
         const initialStatuses: Record<number, UploadStatus> = {};
         documents.forEach(doc => {
@@ -521,48 +552,16 @@ export default function XeroxPageClient() {
         const uploadPromises = documents.map(doc => uploadSingleDocument(doc));
 
         try {
-            const urls = await Promise.all(uploadPromises);
-
-            const xeroxJobsForStorage = documents.map((doc, index) => {
-                const priceInfo = documentPrices.find(p => p.id === doc.id);
-                return {
-                    id: `${Date.now()}-${doc.id}`,
-                    fileDetails: {
-                        name: doc.fileDetails!.name,
-                        type: doc.fileDetails!.type,
-                        url: urls[index],
-                    },
-                    pageCount: doc.fileDetails!.pages || 0,
-                    price: priceInfo ? priceInfo.finalPrice / doc.quantity : 0,
-                    config: {
-                        paperType: doc.selectedPaperType,
-                        colorOption: doc.selectedColorOption,
-                        formatType: doc.selectedFormatType,
-                        printRatio: doc.selectedPrintRatio,
-                        bindingType: doc.selectedBindingType,
-                        laminationType: doc.selectedLaminationType,
-                        quantity: doc.quantity,
-                        message: doc.message,
-                    }
-                };
-            });
-
-            sessionStorage.setItem('xeroxCheckoutJobs', JSON.stringify(xeroxJobsForStorage));
-            
-            setIsRedirecting(true);
-            setTimeout(() => {
-                router.push('/xerox/checkout');
-                setIsUploading(false);
-            }, 5000);
-
+            await Promise.all(uploadPromises);
+            handleProceedToCheckout(); // All successful, redirect immediately
         } catch (error) {
             console.error("One or more uploads failed.", error);
             toast({
                 variant: 'destructive',
                 title: "Upload Failed",
-                description: "One or more documents failed to upload. Please retry the failed uploads."
+                description: "One or more documents failed to upload. You can retry or proceed without them."
             });
-            // We don't set isUploading to false here, so the dialog stays open for retries.
+            // Don't set isUploading to false, let the user decide next action in the dialog
         }
     };
 
@@ -587,35 +586,56 @@ export default function XeroxPageClient() {
           <CardDescription>Please review the details for each document before proceeding.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            {documents.map((doc, index) => {
-              const priceInfo = documentPrices.find(p => p.id === doc.id);
-              return (
-                <div key={doc.id} className="flex justify-between items-center text-sm">
-                  <span className="font-medium truncate pr-4">Doc {index + 1}: {doc.fileDetails?.name}</span>
-                  <span className="flex-shrink-0 font-semibold">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</span>
-                </div>
-              )
-            })}
+          <div className="space-y-4">
+              {documents.map((doc, index) => {
+                  const priceInfo = documentPrices.find(p => p.id === doc.id);
+                  return (
+                      <div key={doc.id} className="border-b pb-3 mb-3">
+                          <div className="flex justify-between items-start text-sm">
+                              <p className="font-medium truncate pr-4">Doc {index + 1}: {doc.fileDetails?.name}</p>
+                              <p className="flex-shrink-0 font-semibold text-base">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</p>
+                          </div>
+                          <Table className="mt-1">
+                            <TableBody>
+                                <TableRow className="border-0">
+                                    <TableCell className="p-1 text-sm text-muted-foreground">Price per page</TableCell>
+                                    <TableCell className="p-1 text-right text-sm font-bold text-primary">Rs {(priceInfo?.pricePerPage || 0).toFixed(2)}</TableCell>
+                                </TableRow>
+                                {priceInfo && priceInfo.bindingCost > 0 && (
+                                    <TableRow className="border-0">
+                                        <TableCell className="p-1 text-sm text-muted-foreground">Binding Cost</TableCell>
+                                        <TableCell className="p-1 text-right text-sm font-bold text-primary">Rs {priceInfo.bindingCost.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                )}
+                                {priceInfo && priceInfo.laminationCost > 0 && (
+                                    <TableRow className="border-0">
+                                        <TableCell className="p-1 text-sm text-muted-foreground">Lamination Cost</TableCell>
+                                        <TableCell className="p-1 text-right text-sm font-bold text-primary">Rs {priceInfo.laminationCost.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                          </Table>
+                      </div>
+                  )
+              })}
           </div>
-          <Separator />
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>Rs {subtotal.toFixed(2)}</span>
-            </div>
-            {deliveryCharge > 0 && (
-              <div className="flex justify-between text-destructive">
-                <span>Delivery</span>
-                <span>Rs {deliveryCharge.toFixed(2)}</span>
+          
+           {deliveryCharge > 0 && (
+            <>
+              <Separator />
+              <div className="flex justify-between font-medium">
+                  <span>Delivery</span>
+                  <span>Rs {deliveryCharge.toFixed(2)}</span>
               </div>
-            )}
-          </div>
+            </>
+           )}
+
           <Separator />
           <div className="flex justify-between font-bold text-lg">
-            <p>Final Total Price</p>
-            <p>Rs {finalTotalPrice.toFixed(2)}</p>
+              <p>Final Total Price</p>
+              <p>Rs {finalTotalPrice.toFixed(2)}</p>
           </div>
+          
           {deliveryCharge > 0 && orderSettings && (
             <Alert>
               <Info className="h-4 w-4" />
@@ -625,6 +645,7 @@ export default function XeroxPageClient() {
               </AlertDescription>
             </Alert>
           )}
+
           <Button 
             size="lg" 
             className="w-full"
@@ -802,66 +823,52 @@ export default function XeroxPageClient() {
     </Dialog>
   );
 
-  const allUploadsSuccessful = useMemo(() => {
-    if (documents.length === 0) return false;
-    return documents.every(doc => uploadStatus[doc.id]?.status === 'success');
-  }, [documents, uploadStatus]);
-
-
   return (
     <>
     <Dialog open={isUploading}>
-        <DialogContent hideCloseButton={true}>
+        <DialogContent>
             <DialogHeader>
-                <DialogTitle>{isRedirecting ? 'Upload Complete!' : 'Uploading Documents...'}</DialogTitle>
+                <DialogTitle>Uploading Documents...</DialogTitle>
                 <DialogDescription>
-                    {isRedirecting
-                        ? 'Your documents have been uploaded. Redirecting to checkout...'
-                        : 'Please wait while we upload your documents. Do not close this window.'
-                    }
+                    Please wait while we upload your documents. Do not close this window.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-                {isRedirecting ? (
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <CheckCircle className="h-16 w-16 text-green-500"/>
-                    </div>
-                ) : (
-                    documents.map(doc => {
-                        const status = uploadStatus[doc.id];
-                        return (
-                            <div key={doc.id} className="space-y-2">
-                                <div className="flex justify-between items-center text-sm">
-                                    <p className="truncate font-medium flex items-center gap-2">
-                                        {status?.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin" />}
-                                        {status?.status === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                                        {status?.status === 'error' && <XCircle className="h-4 w-4 text-destructive" />}
-                                        <span className="truncate max-w-[200px] sm:max-w-xs">{doc.file.name}</span>
-                                    </p>
-                                    {status?.status === 'error' && (
-                                        <Button size="sm" variant="outline" onClick={() => handleRetry(doc.id)}>
-                                            <RefreshCw className="mr-2 h-4 w-4"/> Retry
-                                        </Button>
-                                    )}
-                                </div>
-                                {status?.status === 'uploading' && (
-                                    <Progress value={status.progress} />
-                                )}
-                                {status?.status === 'error' && (
-                                    <p className="text-xs text-destructive">{status.error}</p>
-                                )}
+                {documents.map(doc => {
+                    const status = uploadStatus[doc.id];
+                    return (
+                        <div key={doc.id} className="space-y-2">
+                            <div className="flex justify-between items-center text-sm">
+                                <p className="truncate font-medium flex items-center gap-2">
+                                    {status?.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    {status?.status === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                    {status?.status === 'error' && <XCircle className="h-4 w-4 text-destructive" />}
+                                    <span className="truncate max-w-[200px] sm:max-w-xs">{doc.file.name}</span>
+                                </p>
                             </div>
-                        )
-                    })
-                )}
+                            {status?.status === 'uploading' && <Progress value={status.progress} />}
+                            {status?.status === 'error' && (
+                                <>
+                                  <p className="text-xs text-destructive">{status.error} The seller will contact you for the document.</p>
+                                  <div className="flex gap-2 justify-end">
+                                    <Button size="sm" variant="outline" onClick={() => handleRetry(doc.id)}>
+                                        <RefreshCw className="mr-2 h-4 w-4"/> Retry
+                                    </Button>
+                                    <Button size="sm" onClick={() => handleProceedToCheckout()}>
+                                        OK
+                                    </Button>
+                                  </div>
+                                </>
+                            )}
+                        </div>
+                    )
+                })}
             </div>
-            {!isRedirecting && (
-                 <DialogFooter>
-                    <Button variant="outline" disabled>
-                        Cancel
-                    </Button>
-                </DialogFooter>
-            )}
+             <DialogFooter>
+                <Button variant="outline" onClick={handleProceedToCheckout}>
+                    Proceed to Checkout
+                </Button>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
 
@@ -923,5 +930,7 @@ export default function XeroxPageClient() {
     </>
   );
 }
+
+    
 
     
