@@ -483,15 +483,19 @@ export default function XeroxPageClient() {
                             />
                         </div>
         
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-2 border rounded-md bg-background/50">
-                                <p className="text-xs text-muted-foreground">Price per copy</p>
-                                <p className="text-sm font-medium">Rs {pricePerCopy.toFixed(2)}</p>
-                            </div>
-                             <div className="p-2 border rounded-md bg-background/50">
-                                <p className="text-xs text-muted-foreground">Final Price</p>
-                                <p className="text-sm font-medium">Rs {singleDocPrice.toFixed(2)}</p>
-                            </div>
+                        <div className="p-2 border rounded-md bg-background/50">
+                            <Table>
+                                <TableBody>
+                                    <TableRow className="border-0">
+                                        <TableCell className="p-1 text-base text-muted-foreground">Price per copy</TableCell>
+                                        <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {pricePerCopy.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                    <TableRow className="border-0">
+                                        <TableCell className="p-1 text-base text-muted-foreground">Final Price</TableCell>
+                                        <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {singleDocPrice.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
                         </div>
         
                     </CardContent>
