@@ -149,15 +149,15 @@ export default function OrdersPage() {
                                 
                                 <Separator />
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="space-y-1 text-sm">
+                                <div className="flex flex-wrap gap-4">
+                                    <div className="space-y-1 text-sm flex-grow basis-1/2">
                                         <h4 className="text-sm font-semibold mb-2">Price Details</h4>
                                         <div className="flex justify-between font-medium"><p>Subtotal:</p> <p>Rs {subtotal.toFixed(2)}</p></div>
                                         <div className="flex justify-between font-medium"><p>Delivery:</p> <p>Rs {totalDelivery.toFixed(2)}</p></div>
                                         <div className="flex justify-between font-bold text-base mt-1"><p>Total:</p> <p>Rs {total.toFixed(2)}</p></div>
                                     </div>
                                     {shop && (
-                                        <div className="space-y-1 text-sm">
+                                        <div className="space-y-1 text-sm flex-grow basis-1/2">
                                             <h4 className="text-sm font-semibold mb-2">Seller Information</h4>
                                             <p className="font-medium">{shop.name}</p>
                                             <div className="flex items-center gap-2 text-muted-foreground min-w-0">
