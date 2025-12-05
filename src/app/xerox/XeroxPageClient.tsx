@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
@@ -420,79 +421,82 @@ export default function XeroxPageClient() {
         }
 
         return (
-            <Card className="relative">
-                <CardHeader className="p-4 flex flex-row justify-between items-center bg-muted/50">
-                     <p className="font-semibold truncate">Document {index + 1}</p>
-                     <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removeDocument(document.id)}>
-                        <XCircle className="h-5 w-5 text-red-500" />
-                    </Button>
-                </CardHeader>
-    
-                <CardContent className="p-4 space-y-4">
-                    <div className="p-2 border rounded-md w-full overflow-x-auto no-scrollbar">
-                        <p className="text-sm font-medium whitespace-nowrap">{document.fileDetails?.name || "Processing..."}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-2 border rounded-md">
-                            <p className="text-xs text-muted-foreground">Document Type</p>
-                            <p className="text-sm font-medium uppercase">{document.fileDetails?.type.split('/')[1] || 'N/A'}</p>
+            <Card className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-sky-100 to-white dark:from-sky-900 dark:to-black z-0"></div>
+                <div className="relative z-10">
+                    <CardHeader className="p-4 flex flex-row justify-between items-center bg-transparent">
+                         <p className="font-semibold truncate">Document {index + 1}</p>
+                         <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removeDocument(document.id)}>
+                            <XCircle className="h-5 w-5 text-red-500" />
+                        </Button>
+                    </CardHeader>
+        
+                    <CardContent className="p-4 space-y-4">
+                        <div className="p-2 border rounded-md w-full overflow-x-auto no-scrollbar bg-background/50">
+                            <p className="text-sm font-medium whitespace-nowrap">{document.fileDetails?.name || "Processing..."}</p>
                         </div>
-                         <div className="p-2 border rounded-md">
-                            <p className="text-xs text-muted-foreground">No. of Pages</p>
-                            {document.fileDetails?.pages === undefined ? <Loader2 className="h-5 w-5 animate-spin"/> : <p className="text-sm font-medium">{document.fileDetails.pages}</p>}
-                        </div>
-                    </div>
-    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="flex flex-col">
-                            <Label className="text-xs mb-1">Paper Type</Label>
-                            <Select value={document.selectedPaperType} onValueChange={(v) => updateDocumentState(document.id, {selectedPaperType: v})}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {paperTypes.map(pt => <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div className="flex flex-col">
-                            <Label className="text-xs mb-1">Quantity</Label>
-                            <div className="flex items-center gap-2">
-                                <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => updateDocumentState(document.id, { quantity: Math.max(1, document.quantity - 1) })}> <Minus className="h-4 w-4" /> </Button>
-                                <Input type="number" min="1" value={document.quantity} onChange={(e) => updateDocumentState(document.id, { quantity: Math.max(1, parseInt(e.target.value, 10) || 1) })} className="h-9 w-14 text-center" />
-                                <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => updateDocumentState(document.id, { quantity: document.quantity + 1 })}> <Plus className="h-4 w-4" /> </Button>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-2 border rounded-md bg-background/50">
+                                <p className="text-xs text-muted-foreground">Document Type</p>
+                                <p className="text-sm font-medium uppercase">{document.fileDetails?.type.split('/')[1] || 'N/A'}</p>
+                            </div>
+                             <div className="p-2 border rounded-md bg-background/50">
+                                <p className="text-xs text-muted-foreground">No. of Pages</p>
+                                {document.fileDetails?.pages === undefined ? <Loader2 className="h-5 w-5 animate-spin"/> : <p className="text-sm font-medium">{document.fileDetails.pages}</p>}
                             </div>
                         </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      {renderOptionSelect(`color-option-${document.id}`, 'Color', document.selectedColorOption, value => updateDocumentState(document.id, { selectedColorOption: value }), document.currentPaperDetails?.colorOptionIds, HARDCODED_XEROX_OPTIONS.colorOptions)}
-                      {renderOptionSelect(`format-type-${document.id}`, 'Format', document.selectedFormatType, value => updateDocumentState(document.id, { selectedFormatType: value }), document.currentPaperDetails?.formatTypeIds, HARDCODED_XEROX_OPTIONS.formatTypes)}
-                      {renderOptionSelect(`print-ratio-${document.id}`, 'Print Ratio', document.selectedPrintRatio, value => updateDocumentState(document.id, { selectedPrintRatio: value }), document.currentPaperDetails?.printRatioIds, HARDCODED_XEROX_OPTIONS.printRatios)}
-                      {renderOptionSelect(`binding-type-${document.id}`, 'Binding', document.selectedBindingType, value => updateDocumentState(document.id, { selectedBindingType: value }), document.currentPaperDetails?.bindingTypeIds, allOptions.bindingTypes, true)}
-                      {renderOptionSelect(`lamination-type-${document.id}`, 'Lamination', document.selectedLaminationType, value => updateDocumentState(document.id, { selectedLaminationType: value }), document.currentPaperDetails?.laminationTypeIds, allOptions.laminationTypes, true)}
-                    </div>
-
-                     <div>
-                        <Label htmlFor={`message-${document.id}`} className="text-xs">Special Instructions (Optional)</Label>
-                        <Textarea 
-                            id={`message-${document.id}`} 
-                            placeholder="e.g., 'Please use a thick cover for binding.'"
-                            value={document.message}
-                            onChange={e => updateDocumentState(document.id, { message: e.target.value })}
-                            className="mt-1"
-                        />
-                    </div>
-    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-2 border rounded-md">
-                            <p className="text-xs text-muted-foreground">Price per copy</p>
-                            <p className="text-sm font-medium">Rs {pricePerCopy.toFixed(2)}</p>
+        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col">
+                                <Label className="text-xs mb-1">Paper Type</Label>
+                                <Select value={document.selectedPaperType} onValueChange={(v) => updateDocumentState(document.id, {selectedPaperType: v})}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {paperTypes.map(pt => <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="flex flex-col">
+                                <Label className="text-xs mb-1">Quantity</Label>
+                                <div className="flex items-center gap-2">
+                                    <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => updateDocumentState(document.id, { quantity: Math.max(1, document.quantity - 1) })}> <Minus className="h-4 w-4" /> </Button>
+                                    <Input type="number" min="1" value={document.quantity} onChange={(e) => updateDocumentState(document.id, { quantity: Math.max(1, parseInt(e.target.value, 10) || 1) })} className="h-9 w-14 text-center" />
+                                    <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => updateDocumentState(document.id, { quantity: document.quantity + 1 })}> <Plus className="h-4 w-4" /> </Button>
+                                </div>
+                            </div>
                         </div>
-                         <div className="p-2 border rounded-md">
-                            <p className="text-xs text-muted-foreground">Final Price</p>
-                            <p className="text-sm font-medium">Rs {singleDocPrice.toFixed(2)}</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          {renderOptionSelect(`color-option-${document.id}`, 'Color', document.selectedColorOption, value => updateDocumentState(document.id, { selectedColorOption: value }), document.currentPaperDetails?.colorOptionIds, HARDCODED_XEROX_OPTIONS.colorOptions)}
+                          {renderOptionSelect(`format-type-${document.id}`, 'Format', document.selectedFormatType, value => updateDocumentState(document.id, { selectedFormatType: value }), document.currentPaperDetails?.formatTypeIds, HARDCODED_XEROX_OPTIONS.formatTypes)}
+                          {renderOptionSelect(`print-ratio-${document.id}`, 'Print Ratio', document.selectedPrintRatio, value => updateDocumentState(document.id, { selectedPrintRatio: value }), document.currentPaperDetails?.printRatioIds, HARDCODED_XEROX_OPTIONS.printRatios)}
+                          {renderOptionSelect(`binding-type-${document.id}`, 'Binding', document.selectedBindingType, value => updateDocumentState(document.id, { selectedBindingType: value }), document.currentPaperDetails?.bindingTypeIds, allOptions.bindingTypes, true)}
+                          {renderOptionSelect(`lamination-type-${document.id}`, 'Lamination', document.selectedLaminationType, value => updateDocumentState(document.id, { selectedLaminationType: value }), document.currentPaperDetails?.laminationTypeIds, allOptions.laminationTypes, true)}
                         </div>
-                    </div>
     
-                </CardContent>
+                         <div>
+                            <Label htmlFor={`message-${document.id}`} className="text-xs">Special Instructions (Optional)</Label>
+                            <Textarea 
+                                id={`message-${document.id}`} 
+                                placeholder="e.g., 'Please use a thick cover for binding.'"
+                                value={document.message}
+                                onChange={e => updateDocumentState(document.id, { message: e.target.value })}
+                                className="mt-1"
+                            />
+                        </div>
+        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-2 border rounded-md bg-background/50">
+                                <p className="text-xs text-muted-foreground">Price per copy</p>
+                                <p className="text-sm font-medium">Rs {pricePerCopy.toFixed(2)}</p>
+                            </div>
+                             <div className="p-2 border rounded-md bg-background/50">
+                                <p className="text-xs text-muted-foreground">Final Price</p>
+                                <p className="text-sm font-medium">Rs {singleDocPrice.toFixed(2)}</p>
+                            </div>
+                        </div>
+        
+                    </CardContent>
+                </div>
             </Card>
         );
       };
@@ -848,4 +852,3 @@ export default function XeroxPageClient() {
     </>
   );
 }
-
