@@ -594,6 +594,7 @@ export default function XeroxPageClient() {
               const priceInfo = documentPrices.find(p => p.id === doc.id);
               const configDetails = [
                   { label: 'Pages', value: doc.fileDetails?.pages || 'N/A' },
+                  { label: 'Quantity', value: doc.quantity },
                   { label: 'Paper', value: getOptionName('paperType', doc.selectedPaperType) },
                   { label: 'Color', value: getOptionName('colorOption', doc.selectedColorOption) },
                   { label: 'Format', value: getOptionName('formatType', doc.selectedFormatType) },
@@ -646,7 +647,7 @@ export default function XeroxPageClient() {
               <Info className="h-4 w-4" />
               <AlertTitle>Delivery Charge Applied</AlertTitle>
               <AlertDescription>
-                Add documents worth Rs {(orderSettings.minXeroxOrderPrice - subtotal).toFixed(2)} more to get FREE delivery.
+                Your order total is below Rs {orderSettings.minXeroxOrderPrice}. A fee of Rs {orderSettings.xeroxDeliveryCharge} has been added.
               </AlertDescription>
             </Alert>
           )}
