@@ -1,5 +1,4 @@
 
-
 import type { Product, Category, Brand, Author, ProductType, HomepageContent, XeroxService, XeroxOption, XeroxOptionType, OrderSettings, Order, OrderStatus, Notification, PaperSample } from './types';
 import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, setDoc, writeBatch, runTransaction } from 'firebase/firestore';
@@ -497,10 +496,7 @@ export const getOrderSettings = async (): Promise<OrderSettings> => {
     }
     // Return default values if not set
     return {
-      itemChargeTier1: 0,
-      itemChargeTier2: 0,
-      itemChargeTier3: 0,
-      itemChargeTier4: 0,
+      itemDeliveryCharge: 0,
       minItemOrderForFreeDelivery: 0,
       minXeroxOrderPrice: 0,
       xeroxDeliveryCharge: 0,
@@ -554,6 +550,18 @@ export const getMyOrders = async (userId: string): Promise<Order[]> => {
         throw new Error("Could not fetch order history.");
     }
 };
+
+export const getOrdersByGroupId = async (groupId: string): Promise<Order[]> => {
+    try {
+        const q = query(ordersCollection, where('groupId', '==', groupId), orderBy('createdAt', 'asc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+    } catch (error) {
+        console.error("Error fetching orders by group ID:", error);
+        throw new Error("Could not fetch orders for this group.");
+    }
+};
+
 
 export const getAllOrders = async (): Promise<Order[]> => {
     try {

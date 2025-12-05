@@ -26,6 +26,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle, Store, Info, MapPin, ArrowLeft, Loader2, CheckCircle, Pencil, FileText } from 'lucide-react';
 import type { UserProfile, Shop, OrderSettings, Product, ShopService, CartItem, XeroxDocument } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const addressSchema = z.object({
@@ -38,7 +39,7 @@ const addressSchema = z.object({
 });
 
 const mobileSchema = z.object({
-    mobile: z.string().min(10, "A valid 10-digit mobile number is required.").max(10),
+    mobile: z.string().regex(/^\d{10}$/, "A valid 10-digit mobile number is required."),
     altMobiles: z.array(z.object({ value: z.string().min(10, "Alternate number must be 10 digits.") })).min(1, "At least one alternate mobile number is required."),
 });
 
@@ -181,6 +182,7 @@ export default function CheckoutPage() {
     const addressIndex = parseInt(values.selectedAddress.replace('address-', ''));
     const shippingAddress = user.addresses[addressIndex];
     
+    const groupId = uuidv4(); // Generate a single group ID for this checkout session
     let orderCreationPromises = [];
 
     // --- Product Items Order Creation ---
@@ -208,6 +210,7 @@ export default function CheckoutPage() {
         for (const cartItem of itemsToOrder) {
             orderCreationPromises.push(
                 createOrder({
+                    groupId,
                     userId: user.uid,
                     productId: cartItem.product.id,
                     productName: cartItem.product.name,
@@ -248,6 +251,7 @@ export default function CheckoutPage() {
           if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed');
           
           orderCreationPromises.push(createOrder({
+            groupId,
             userId: user.uid,
             productName: xeroxItem.xerox.file.name,
             productImage: data.url, // Storing drive URL here
@@ -260,7 +264,6 @@ export default function CheckoutPage() {
             altMobiles: mobileData.altMobiles?.filter(m => m.value),
             status: 'Pending Confirmation',
             category: 'xerox',
-            // Include Xerox-specific details if needed in the future
           }));
         } catch (uploadError: any) {
           toast({ variant: "destructive", title: 'Upload Failed', description: `Could not upload ${xeroxItem.xerox.file.name}. Order cancelled.` });

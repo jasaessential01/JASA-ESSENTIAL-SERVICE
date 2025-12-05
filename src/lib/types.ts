@@ -185,6 +185,7 @@ export type OrderTracking = {
 
 export type Order = {
   id: string;
+  groupId: string; // New field to group orders from the same checkout
   userId: string;
   sellerId: string;
   productId?: string; // Optional for Xerox orders

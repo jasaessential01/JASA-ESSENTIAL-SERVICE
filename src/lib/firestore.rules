@@ -1,0 +1,120 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if a user is an admin
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             'admin' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles;
+    }
+    
+    // Helper function to check if a user is a seller for a specific shop
+    function isSellerForShop(shopId) {
+        return exists(/databases/$(database)/documents/shops/$(shopId)) &&
+               request.auth.uid in get(/databases/$(database)/documents/shops/$(shopId)).data.ownerIds;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+      allow read, write: if isAdmin();
+    }
+    
+    match /users/{document=**} {
+        allow read: if isAdmin();
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow create: if true; // Allow backend functions (or in this case, server-side logic) to create notifications
+      allow read, update: if request.auth.uid == resource.data.userId; // User can read and update their own notifications (e.g., mark as read)
+    }
+
+    // Orders collection
+    match /orders/{orderId} {
+      // User can create their own order
+      allow create: if request.auth.uid == request.resource.data.userId;
+      // User can read their own orders or grouped orders
+      allow read: if request.auth.uid == resource.data.userId || isAdmin();
+      // User can update their own order only to cancel it, and only if it's pending
+      allow update: if request.auth.uid == resource.data.userId &&
+                       request.resource.data.status == 'Cancelled' &&
+                       resource.data.status == 'Pending Confirmation';
+      // Sellers can read and update orders for their shop
+      allow read, update: if isSellerForShop(resource.data.sellerId);
+      // Admins have full access
+      allow read, update, delete: if isAdmin();
+    }
+    
+    match /paperSamples/{sampleId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Public read-only collections
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /brands/{brandId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /authors/{authorId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /productTypes/{typeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /posts/{postId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /shops/{shopId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+     match /xeroxServices/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+     }
+     match /homepageContent/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+     }
+    match /orderSettings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Xerox Form Option Collections
+    match /paperTypes/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /colorOptions/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /formatTypes/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /printRatios/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /bindingTypes/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /laminationTypes/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

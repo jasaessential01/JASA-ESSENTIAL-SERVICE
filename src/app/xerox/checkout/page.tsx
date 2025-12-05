@@ -26,6 +26,7 @@ import { PlusCircle, Store, Info, MapPin, ArrowLeft, Loader2, CheckCircle, FileT
 import type { UserProfile, Shop, OrderSettings, ShopService, XeroxOption, Address } from '@/lib/types';
 import { HARDCODED_XEROX_OPTIONS } from '@/lib/xerox-options';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { v4 as uuidv4 } from 'uuid';
 
 type StoredXeroxJob = {
     id: string;
@@ -223,11 +224,12 @@ export default function XeroxCheckoutPage() {
     const addressIndex = parseInt(values.selectedAddress.replace('address-', ''));
     const shippingAddress = user.addresses[addressIndex];
     
-    // Save mobile numbers before creating order
     await updateUserProfile(user.uid, { mobile: mobileData.mobile, altMobiles: mobileData.altMobiles?.filter(m => m.value) });
 
+    const groupId = uuidv4();
     const orderPromises = xeroxJobs.map(job => {
         return createOrder({
+            groupId,
             userId: user.uid,
             productName: job.fileDetails.name,
             productImage: job.fileDetails.url,
