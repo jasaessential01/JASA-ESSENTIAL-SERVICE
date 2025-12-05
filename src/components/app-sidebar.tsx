@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/use-toast"
 import { usePathname, useRouter } from "next/navigation"
 import { Sun, Settings, LogOut, UserPlus, LogIn, Home, ShoppingCart, User, Moon, ShieldCheck, Notebook, Book, Printer, CircuitBoard, FilePenLine, Store, Package, History, FolderKanban, ImageIcon, LayoutDashboard, Copy, UserCog, UserRoundCog, ClipboardList, Database, BookCopy, Map, PieChart, Wrench, Images } from "lucide-react"
 import Link from "next/link"
-import { useTheme } from "@/context/theme-provider"
+import { useTheme } from "next-themes"
 import { Skeleton } from "./ui/skeleton"
 import type { Shop } from "@/lib/types"
 import Image from "next/image";
