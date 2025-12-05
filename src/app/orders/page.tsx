@@ -138,8 +138,10 @@ export default function OrdersPage() {
                                     <h4 className="text-sm font-semibold mb-2">Items Ordered ({group.orders.length})</h4>
                                     <div className="space-y-2 text-sm max-h-32 overflow-y-auto pr-2">
                                         {group.orders.map(order => (
-                                            <div key={order.id} className="flex justify-between items-start gap-4">
-                                                <p className="flex-grow truncate">{order.productName}</p>
+                                            <div key={order.id} className="flex justify-between items-start gap-2">
+                                                <div className="flex-grow min-w-0">
+                                                  <p className="truncate">{order.productName}</p>
+                                                </div>
                                                 <p className="flex-shrink-0 font-medium">x{order.quantity}</p>
                                             </div>
                                         ))}
