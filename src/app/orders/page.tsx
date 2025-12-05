@@ -153,7 +153,7 @@ export default function OrdersPage() {
                                                 {group.orders.map(order => (
                                                     <TableRow key={order.id}>
                                                         <TableCell className="font-medium">
-                                                            {order.productName.split(' ').slice(0, 2).join(' ')}{order.productName.split(' ').length > 2 ? '...' : ''}
+                                                            {order.productName ? `${order.productName.split(' ').slice(0, 2).join(' ')}${order.productName.split(' ').length > 2 ? '...' : ''}` : "Printing Job"}
                                                         </TableCell>
                                                         <TableCell className="text-right">{order.quantity}</TableCell>
                                                     </TableRow>
