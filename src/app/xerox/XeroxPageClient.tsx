@@ -538,7 +538,7 @@ export default function XeroxPageClient() {
                         <p className="font-medium truncate max-w-xs flex-1">Doc {index + 1}: {doc.fileDetails?.name}</p>
                         <div className="text-right">
                            <p className="font-semibold">Rs {docPrice.toFixed(2)}</p>
-                           <p className="text-muted-foreground text-xs">{doc.config.quantity} x copies</p>
+                           <p className="text-muted-foreground text-xs">{doc.quantity} x copies</p>
                         </div>
                     </div>
                     <Table className="text-xs">
