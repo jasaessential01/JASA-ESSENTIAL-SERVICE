@@ -2,12 +2,12 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { getXeroxServices, getXeroxOptions, getPaperSamples } from "@/lib/data";
-import type { XeroxService, XeroxOption, PaperSample } from "@/lib/types";
+import { getXeroxServices, getXeroxOptions, getPaperSamples, getOrderSettings } from "@/lib/data";
+import type { XeroxService, XeroxOption, PaperSample, OrderSettings } from "@/lib/types";
 import { HARDCODED_XEROX_OPTIONS } from "@/lib/xerox-options";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, FileUp, XCircle, FileText, ShoppingCart, Plus, Minus, Pencil, ListOrdered, Images, Link as LinkIcon, CheckCircle, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, FileUp, XCircle, FileText, ShoppingCart, Plus, Minus, Pencil, ListOrdered, Images, Link as LinkIcon, CheckCircle, RefreshCw, Trash2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +52,7 @@ import {
   TableHeader,
   TableHead
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 // Set up worker for pdf.js
@@ -252,6 +254,7 @@ export default function XeroxPageClient() {
   const [services, setServices] = useState<XeroxService[]>([]);
   const [paperTypes, setPaperTypes] = useState<XeroxOption[]>([]);
   const [paperSamples, setPaperSamples] = useState<PaperSample[]>([]);
+  const [orderSettings, setOrderSettings] = useState<OrderSettings | null>(null);
   const [allOptions, setAllOptions] = useState<{
       bindingTypes: XeroxOption[],
       laminationTypes: XeroxOption[],
@@ -273,6 +276,7 @@ export default function XeroxPageClient() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<Record<number, UploadStatus>>({});
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [confirmedDocs, setConfirmedDocs] = useState<number[]>([]);
 
 
   useEffect(() => {
@@ -280,17 +284,19 @@ export default function XeroxPageClient() {
       setIsLoading(true);
       setError(null);
       try {
-        const [fetchedServices, fetchedPaperTypes, bindingTypes, laminationTypes, fetchedPaperSamples] = await Promise.all([
+        const [fetchedServices, fetchedPaperTypes, bindingTypes, laminationTypes, fetchedPaperSamples, fetchedOrderSettings] = await Promise.all([
           getXeroxServices(),
           getXeroxOptions('paperType'),
           getXeroxOptions('bindingType'),
           getXeroxOptions('laminationType'),
           getPaperSamples(),
+          getOrderSettings(),
         ]);
         setServices(fetchedServices);
         setPaperTypes(fetchedPaperTypes);
         setAllOptions({ bindingTypes, laminationTypes });
         setPaperSamples(fetchedPaperSamples);
+        setOrderSettings(fetchedOrderSettings);
         
       } catch (err) {
         setError("Failed to load printing services. Please try again later.");
@@ -365,6 +371,7 @@ export default function XeroxPageClient() {
   
   const removeDocument = (id: number) => {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
+    setConfirmedDocs(prev => prev.filter(docId => docId !== id));
   };
 
 
@@ -427,10 +434,19 @@ export default function XeroxPageClient() {
     return documents.map(doc => calculateDocumentPrice(doc));
   }, [documents, calculateDocumentPrice]);
 
-  const finalTotalPrice = useMemo(() => {
+  const subtotal = useMemo(() => {
     return documentPrices.reduce((total, item) => total + item.finalPrice, 0);
   }, [documentPrices]);
   
+    const deliveryCharge = useMemo(() => {
+        if (!orderSettings || !orderSettings.minXeroxOrderPrice || subtotal >= orderSettings.minXeroxOrderPrice) {
+            return 0;
+        }
+        return orderSettings.xeroxDeliveryCharge || 0;
+    }, [subtotal, orderSettings]);
+
+    const finalTotalPrice = useMemo(() => subtotal + deliveryCharge, [subtotal, deliveryCharge]);
+
     const uploadSingleDocument = async (doc: DocumentState) => {
         setUploadStatus(prev => ({
             ...prev,
@@ -494,6 +510,15 @@ export default function XeroxPageClient() {
     };
     
     const handleCheckout = async () => {
+        if (confirmedDocs.length !== documents.length) {
+            toast({
+                variant: 'destructive',
+                title: 'Confirmation Required',
+                description: 'Please review and confirm each document by ticking the checkbox.'
+            });
+            return;
+        }
+
         setIsUploading(true);
         setIsRedirecting(false);
 
@@ -560,6 +585,14 @@ export default function XeroxPageClient() {
             });
         }
     };
+
+    const handleConfirmationChange = (docId: number, isChecked: boolean) => {
+        if (isChecked) {
+            setConfirmedDocs(prev => [...prev, docId]);
+        } else {
+            setConfirmedDocs(prev => prev.filter(id => id !== docId));
+        }
+    };
   
   const FinalEstimation = () => {
     if (documents.length === 0) return null;
@@ -574,6 +607,8 @@ export default function XeroxPageClient() {
         if (type === 'laminationType') return allOptions.laminationTypes.find(o => o.id === id)?.name || '';
         return '';
     };
+
+    const deliveryFeePerDoc = documents.length > 0 ? Math.ceil(deliveryCharge / documents.length) : 0;
 
     return (
       <Card>
@@ -631,11 +666,27 @@ export default function XeroxPageClient() {
                                 <TableCell className="p-1 h-auto">Rs {priceInfo.laminationCost.toFixed(2)}</TableCell>
                             </TableRow>
                         )}
+                        {deliveryCharge > 0 && (
+                            <TableRow className="border-0">
+                                <TableCell className="font-semibold p-1 h-auto text-destructive w-1/3">Delivery Fee</TableCell>
+                                <TableCell className="p-1 h-auto text-destructive">Rs {deliveryFeePerDoc.toFixed(2)}</TableCell>
+                            </TableRow>
+                        )}
                       </TableBody>
                     </Table>
 
                     <div className="text-right border-t pt-2">
-                        <p className="text-xl font-bold text-primary">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</p>
+                        <p className="text-xl font-bold text-primary">Rs {((priceInfo?.finalPrice || 0) + deliveryFeePerDoc).toFixed(2)}</p>
+                    </div>
+
+                    <div className="flex items-center space-x-2 pt-2 border-t">
+                      <Checkbox id={`confirm-${doc.id}`} onCheckedChange={(checked) => handleConfirmationChange(doc.id, !!checked)} />
+                      <label
+                        htmlFor={`confirm-${doc.id}`}
+                        className="text-sm font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        I confirm the details for this document are correct.
+                      </label>
                     </div>
                 </div>
               )
@@ -650,11 +701,22 @@ export default function XeroxPageClient() {
                 </div>
             </CardContent>
           </Card>
+            
+          {deliveryCharge > 0 && orderSettings && (
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Delivery Charge Applied</AlertTitle>
+                    <AlertDescription>
+                        Add documents worth Rs {(orderSettings.minXeroxOrderPrice - subtotal).toFixed(2)} more to get FREE delivery.
+                    </AlertDescription>
+                </Alert>
+            )}
 
           <Button 
             size="lg" 
             className="w-full"
             onClick={handleCheckout}
+            disabled={confirmedDocs.length !== documents.length}
           >
             <CheckCircle className="mr-2 h-5 w-5" />
             Confirm & Proceed to Checkout
