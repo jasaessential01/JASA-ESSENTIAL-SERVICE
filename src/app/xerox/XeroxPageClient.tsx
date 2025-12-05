@@ -93,8 +93,6 @@ export default function XeroxPageClient() {
   const [documents, setDocuments] = useState<DocumentState[]>([]);
   const nextId = useRef(0);
   
-  const [editingDocument, setEditingDocument] = useState<DocumentState | null>(null);
-  
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<Record<number, UploadStatus>>({});
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -388,195 +386,116 @@ export default function XeroxPageClient() {
         }
     };
 
-  
-  const EditDocumentDialog = ({ doc, index, onSave }: { doc: DocumentState | null, index: number, onSave: (updatedDoc: DocumentState) => void }) => {
-    const [localDoc, setLocalDoc] = useState<DocumentState | null>(doc);
-  
-    useEffect(() => {
-      setLocalDoc(doc);
-    }, [doc]);
-  
-    if (!localDoc) return null;
-  
-    const handleLocalUpdate = (updates: Partial<DocumentState>) => {
-      setLocalDoc(prev => {
-        if (!prev) return null;
-        const updatedDoc = { ...prev, ...updates };
-
-        if ('selectedPaperType' in updates && updates.selectedPaperType !== prev.selectedPaperType) {
-          const newPaperDetails = paperTypes.find(pt => pt.id === updates.selectedPaperType) || null;
-          updatedDoc.currentPaperDetails = newPaperDetails;
-          if (newPaperDetails) {
-            if (!newPaperDetails.colorOptionIds?.includes(updatedDoc.selectedColorOption)) updatedDoc.selectedColorOption = newPaperDetails.colorOptionIds?.[0] || '';
-            if (!newPaperDetails.formatTypeIds?.includes(updatedDoc.selectedFormatType)) updatedDoc.selectedFormatType = newPaperDetails.formatTypeIds?.[0] || '';
-            if (!newPaperDetails.printRatioIds?.includes(updatedDoc.selectedPrintRatio)) updatedDoc.selectedPrintRatio = newPaperDetails.printRatioIds?.[0] || '';
-            if (!newPaperDetails.bindingTypeIds?.includes(updatedDoc.selectedBindingType)) updatedDoc.selectedBindingType = 'none';
-            if (!newPaperDetails.laminationTypeIds?.includes(updatedDoc.selectedLaminationType)) updatedDoc.selectedLaminationType = 'none';
-          }
-        }
-        return updatedDoc;
-      });
-    };
-  
-    const renderOptionSelect = (
-        id: string, label: string, selectedValue: string | undefined,
-        onValueChange: (value: string) => void,
-        optionIds: string[] | undefined, allOptionList: { id: string, name: string, price?: number }[],
-        includeNone: boolean = false
-    ) => {
-        if (!optionIds || optionIds.length === 0) return null;
+    const DocumentCard = ({ document, index }: { document: DocumentState, index: number }) => {
+        const singleDocPrice = documentPrices.find(p => p.id === document.id)?.price || 0;
+        const pricePerCopy = document.quantity > 0 ? singleDocPrice / document.quantity : 0;
         
-        const availableOptions = allOptionList.filter(opt => optionIds.includes(opt.id));
-        if (availableOptions.length === 0 && !includeNone) return null;
+        const renderOptionSelect = (
+            id: string, label: string, selectedValue: string | undefined,
+            onValueChange: (value: string) => void,
+            optionIds: string[] | undefined, allOptionList: { id: string, name: string, price?: number }[],
+            includeNone: boolean = false
+        ) => {
+            if (!optionIds || optionIds.length === 0) return null;
+            
+            const availableOptions = allOptionList.filter(opt => optionIds.includes(opt.id));
+            if (availableOptions.length === 0 && !includeNone) return null;
+    
+            return (
+                <div className="flex flex-col">
+                    <Label htmlFor={id} className="text-xs mb-1">{label}</Label>
+                    <Select value={selectedValue} onValueChange={onValueChange} disabled={isLoading}>
+                        <SelectTrigger id={id}><SelectValue placeholder={`Select ${label.toLowerCase()}...`} /></SelectTrigger>
+                        <SelectContent>
+                            {includeNone && <SelectItem value="none">No {label}</SelectItem>}
+                            {availableOptions.map(opt => (
+                                <SelectItem key={opt.id} value={opt.id}>
+                                    {opt.name} {opt.price ? `(Rs ${opt.price.toFixed(2)})` : ''}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            );
+        }
 
         return (
-            <div>
-                <Label htmlFor={id}>{label}</Label>
-                <Select value={selectedValue} onValueChange={onValueChange} disabled={isLoading}>
-                    <SelectTrigger id={id}><SelectValue placeholder={`Select ${label.toLowerCase()}...`} /></SelectTrigger>
-                    <SelectContent>
-                        {includeNone && <SelectItem value="none">No {label}</SelectItem>}
-                        {availableOptions.map(opt => (
-                            <SelectItem key={opt.id} value={opt.id}>
-                                {opt.name} {opt.price ? `(Rs ${opt.price.toFixed(2)})` : ''}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+            <Card className="relative">
+                <CardHeader className="p-4 flex flex-row justify-between items-center bg-muted/50">
+                     <p className="font-semibold truncate">Document {index + 1}</p>
+                     <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removeDocument(document.id)}>
+                        <XCircle className="h-5 w-5 text-red-500" />
+                    </Button>
+                </CardHeader>
+    
+                <CardContent className="p-4 space-y-4">
+                    <div className="p-2 border rounded-md w-full overflow-x-auto no-scrollbar">
+                        <p className="text-sm font-medium whitespace-nowrap">{document.fileDetails?.name || "Processing..."}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-2 border rounded-md">
+                            <p className="text-xs text-muted-foreground">Document Type</p>
+                            <p className="text-sm font-medium uppercase">{document.fileDetails?.type.split('/')[1] || 'N/A'}</p>
+                        </div>
+                         <div className="p-2 border rounded-md">
+                            <p className="text-xs text-muted-foreground">No. of Pages</p>
+                            {document.fileDetails?.pages === undefined ? <Loader2 className="h-5 w-5 animate-spin"/> : <p className="text-sm font-medium">{document.fileDetails.pages}</p>}
+                        </div>
+                    </div>
+    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col">
+                            <Label className="text-xs mb-1">Paper Type</Label>
+                            <Select value={document.selectedPaperType} onValueChange={(v) => updateDocumentState(document.id, {selectedPaperType: v})}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {paperTypes.map(pt => <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="flex flex-col">
+                            <Label className="text-xs mb-1">Quantity</Label>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => updateDocumentState(document.id, { quantity: Math.max(1, document.quantity - 1) })}> <Minus className="h-4 w-4" /> </Button>
+                                <Input type="number" min="1" value={document.quantity} onChange={(e) => updateDocumentState(document.id, { quantity: Math.max(1, parseInt(e.target.value, 10) || 1) })} className="h-9 w-14 text-center" />
+                                <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => updateDocumentState(document.id, { quantity: document.quantity + 1 })}> <Plus className="h-4 w-4" /> </Button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {renderOptionSelect(`color-option-${document.id}`, 'Color', document.selectedColorOption, value => updateDocumentState(document.id, { selectedColorOption: value }), document.currentPaperDetails?.colorOptionIds, HARDCODED_XEROX_OPTIONS.colorOptions)}
+                      {renderOptionSelect(`format-type-${document.id}`, 'Format', document.selectedFormatType, value => updateDocumentState(document.id, { selectedFormatType: value }), document.currentPaperDetails?.formatTypeIds, HARDCODED_XEROX_OPTIONS.formatTypes)}
+                      {renderOptionSelect(`print-ratio-${document.id}`, 'Print Ratio', document.selectedPrintRatio, value => updateDocumentState(document.id, { selectedPrintRatio: value }), document.currentPaperDetails?.printRatioIds, HARDCODED_XEROX_OPTIONS.printRatios)}
+                      {renderOptionSelect(`binding-type-${document.id}`, 'Binding', document.selectedBindingType, value => updateDocumentState(document.id, { selectedBindingType: value }), document.currentPaperDetails?.bindingTypeIds, allOptions.bindingTypes, true)}
+                      {renderOptionSelect(`lamination-type-${document.id}`, 'Lamination', document.selectedLaminationType, value => updateDocumentState(document.id, { selectedLaminationType: value }), document.currentPaperDetails?.laminationTypeIds, allOptions.laminationTypes, true)}
+                    </div>
+
+                     <div>
+                        <Label htmlFor={`message-${document.id}`} className="text-xs">Special Instructions (Optional)</Label>
+                        <Textarea 
+                            id={`message-${document.id}`} 
+                            placeholder="e.g., 'Please use a thick cover for binding.'"
+                            value={document.message}
+                            onChange={e => updateDocumentState(document.id, { message: e.target.value })}
+                            className="mt-1"
+                        />
+                    </div>
+    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-2 border rounded-md">
+                            <p className="text-xs text-muted-foreground">Price per copy</p>
+                            <p className="text-sm font-medium">Rs {pricePerCopy.toFixed(2)}</p>
+                        </div>
+                         <div className="p-2 border rounded-md">
+                            <p className="text-xs text-muted-foreground">Final Price</p>
+                            <p className="text-sm font-medium">Rs {singleDocPrice.toFixed(2)}</p>
+                        </div>
+                    </div>
+    
+                </CardContent>
+            </Card>
         );
-    }
-    
-    const wordCount = localDoc.message?.trim().split(/\s+/).filter(Boolean).length || 0;
-  
-    return (
-      <Dialog open={!!doc} onOpenChange={(open) => {
-          if (!open) {
-              if (localDoc) onSave(localDoc);
-              setEditingDocument(null);
-          }
-      }}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Options for: Document {index + 1}</DialogTitle>
-            <DialogDescription>{localDoc.fileDetails?.name}</DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div>
-                <Label htmlFor={`paper-type-${localDoc.id}`}>Paper Type</Label>
-                <Select
-                  value={localDoc.selectedPaperType}
-                  onValueChange={value => handleLocalUpdate({ selectedPaperType: value })}
-                  disabled={isLoading}
-                >
-                    <SelectTrigger id={`paper-type-${localDoc.id}`}>
-                        <SelectValue placeholder="Select paper type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {paperTypes.map(type => (
-                            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            {renderOptionSelect(`color-option-${localDoc.id}`, 'Color', localDoc.selectedColorOption, value => handleLocalUpdate({ selectedColorOption: value }), localDoc.currentPaperDetails?.colorOptionIds, HARDCODED_XEROX_OPTIONS.colorOptions)}
-            {renderOptionSelect(`format-type-${localDoc.id}`, 'Format', localDoc.selectedFormatType, value => handleLocalUpdate({ selectedFormatType: value }), localDoc.currentPaperDetails?.formatTypeIds, HARDCODED_XEROX_OPTIONS.formatTypes)}
-            {renderOptionSelect(`print-ratio-${localDoc.id}`, 'Print Ratio', localDoc.selectedPrintRatio, value => handleLocalUpdate({ selectedPrintRatio: value }), localDoc.currentPaperDetails?.printRatioIds, HARDCODED_XEROX_OPTIONS.printRatios)}
-            {renderOptionSelect(`binding-type-${localDoc.id}`, 'Binding Type', localDoc.selectedBindingType, value => handleLocalUpdate({ selectedBindingType: value }), localDoc.currentPaperDetails?.bindingTypeIds, allOptions.bindingTypes, true)}
-            {renderOptionSelect(`lamination-type-${localDoc.id}`, 'Lamination Type', localDoc.selectedLaminationType, value => handleLocalUpdate({ selectedLaminationType: value }), localDoc.currentPaperDetails?.laminationTypeIds, allOptions.laminationTypes, true)}
-            <div>
-                <Label htmlFor={`quantity-${localDoc.id}`}>Quantity</Label>
-                <div className="flex items-center gap-2 mt-2">
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => handleLocalUpdate({ quantity: Math.max(1, localDoc.quantity - 1) })}> <Minus className="h-4 w-4" /> </Button>
-                    <Input id={`quantity-${localDoc.id}`} type="number" min="1" value={localDoc.quantity} onChange={(e) => handleLocalUpdate({ quantity: Math.max(1, parseInt(e.target.value, 10) || 1) })} className="h-9 w-20 text-center" />
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => handleLocalUpdate({ quantity: localDoc.quantity + 1 })}> <Plus className="h-4 w-4" /> </Button>
-                </div>
-            </div>
-            <div>
-                <Label htmlFor={`message-${localDoc.id}`}>Special Instructions (Optional)</Label>
-                <Textarea 
-                    id={`message-${localDoc.id}`} 
-                    placeholder="e.g., 'Please use a thick cover for binding.'"
-                    value={localDoc.message}
-                    onChange={e => handleLocalUpdate({ message: e.target.value })}
-                    className="mt-2"
-                />
-                <p className={cn("text-xs mt-1", wordCount > MAX_WORDS ? "text-destructive" : "text-muted-foreground")}>
-                    {wordCount} / {MAX_WORDS} words
-                </p>
-            </div>
-          </div>
-           <DialogFooter>
-                <DialogClose asChild>
-                    <Button variant="secondary" className="w-full">Close</Button>
-                </DialogClose>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-
-  const DocumentCard = ({ document, index }: { document: DocumentState, index: number }) => {
-    const singleDocPrice = documentPrices.find(p => p.id === document.id)?.price || 0;
-    const pricePerPage = document.fileDetails?.pages ? (singleDocPrice / document.quantity) / document.fileDetails.pages : 0;
-    
-    return (
-        <Card className="relative">
-            <CardHeader className="p-4 flex flex-row justify-between items-center bg-muted/50">
-                 <p className="font-semibold truncate">Document {index + 1}</p>
-                 <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removeDocument(document.id)}>
-                    <XCircle className="h-5 w-5 text-red-500" />
-                </Button>
-            </CardHeader>
-
-            <CardContent className="p-4 space-y-4">
-                <div className="p-2 border rounded-md w-full overflow-x-auto no-scrollbar">
-                    <p className="text-sm font-medium whitespace-nowrap">{document.fileDetails?.name || "Processing..."}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="p-2 border rounded-md">
-                        <p className="text-xs text-muted-foreground">Document Type</p>
-                        <p className="text-sm font-medium uppercase">{document.fileDetails?.type.split('/')[1] || 'N/A'}</p>
-                    </div>
-                     <div className="p-2 border rounded-md">
-                        <p className="text-xs text-muted-foreground">No. of Pages</p>
-                        {document.fileDetails?.pages === undefined ? <Loader2 className="h-5 w-5 animate-spin"/> : <p className="text-sm font-medium">{document.fileDetails.pages}</p>}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col">
-                        <Label className="text-xs mb-1">Paper Type</Label>
-                        <Select value={document.selectedPaperType} onValueChange={(v) => updateDocumentState(document.id, {selectedPaperType: v})}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                {paperTypes.map(pt => <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="flex flex-col">
-                        <Label className="text-xs mb-1">Other Options</Label>
-                        <Button type="button" variant="outline" onClick={() => setEditingDocument(document)}>
-                            <Pencil className="mr-2 h-4 w-4"/> Edit Options
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="p-2 border rounded-md">
-                        <p className="text-xs text-muted-foreground">Price per page</p>
-                        <p className="text-sm font-medium">Rs {pricePerPage.toFixed(2)}</p>
-                    </div>
-                     <div className="p-2 border rounded-md">
-                        <p className="text-xs text-muted-foreground">Final Price</p>
-                        <p className="text-sm font-medium">Rs {singleDocPrice.toFixed(2)}</p>
-                    </div>
-                </div>
-
-            </CardContent>
-        </Card>
-    );
-  };
+      };
   
   const FinalEstimation = () => {
     if (documents.length === 0) return null;
@@ -895,9 +814,6 @@ export default function XeroxPageClient() {
         </div>
       </div>
 
-      
-      {editingDocument && <EditDocumentDialog doc={editingDocument} index={documents.findIndex(d => d.id === editingDocument.id)} onSave={(updatedDoc) => updateDocumentState(updatedDoc.id, updatedDoc)} />}
-
        {documents.length === 0 && !isLoading ? renderInitialState() : (
          <div className="container mx-auto px-4 py-8 space-y-4">
             {documents.map((doc, index) => (
@@ -932,3 +848,4 @@ export default function XeroxPageClient() {
     </>
   );
 }
+
