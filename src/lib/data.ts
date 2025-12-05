@@ -648,6 +648,20 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus, re
     }
 };
 
+export const cancelOrder = async (orderId: string, reason: string): Promise<void> => {
+    try {
+        const orderDocRef = doc(db, 'orders', orderId);
+        await updateDoc(orderDocRef, {
+            status: "Cancelled",
+            cancellationReason: reason,
+        });
+        // You might want to send a notification to the seller here as well
+    } catch (error) {
+        console.error("Error cancelling order:", error);
+        throw new Error("Failed to cancel order.");
+    }
+};
+
 // --- Notification Functions ---
 export const getNotificationsForUser = async (userId: string): Promise<Notification[]> => {
     try {

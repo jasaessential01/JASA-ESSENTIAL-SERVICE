@@ -4,16 +4,30 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-provider";
-import { getOrdersByGroupId } from "@/lib/data";
+import { getOrdersByGroupId, cancelOrder } from "@/lib/data";
 import type { Order } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, FileText, ShoppingCart, Package } from "lucide-react";
+import { ArrowLeft, FileText, ShoppingCart, Package, XCircle } from "lucide-react";
 import Image from "next/image";
 import OrderTracker from "@/components/order-tracker";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+
 
 export default function OrderGroupDetailPage() {
   const { groupId } = useParams();
@@ -23,25 +37,20 @@ export default function OrderGroupDetailPage() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    if (typeof groupId !== 'string') {
-      toast({ variant: 'destructive', title: 'Error', description: 'Invalid Order Group ID.' });
-      router.push('/orders');
-      return;
-    }
-
-    const fetchOrders = async () => {
+  const fetchOrders = async () => {
+      if (typeof groupId !== 'string') {
+        toast({ variant: 'destructive', title: 'Error', description: 'Invalid Order Group ID.' });
+        router.push('/orders');
+        return;
+      }
       setIsLoading(true);
       try {
         const fetchedOrders = await getOrdersByGroupId(groupId);
-        if (fetchedOrders.length === 0 || fetchedOrders[0].userId !== user.uid) {
+        if (fetchedOrders.length === 0 || fetchedOrders[0].userId !== user?.uid) {
             toast({ variant: 'destructive', title: 'Access Denied', description: 'You do not have permission to view these orders.' });
             router.push('/orders');
             return;
@@ -53,8 +62,34 @@ export default function OrderGroupDetailPage() {
         setIsLoading(false);
       }
     };
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     fetchOrders();
   }, [groupId, user, authLoading, router, toast]);
+
+  const handleCancelOrder = async () => {
+    if (!cancellingOrder || !cancelReason.trim()) {
+        toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for cancellation.' });
+        return;
+    }
+    setIsSubmitting(true);
+    try {
+        await cancelOrder(cancellingOrder.id, cancelReason);
+        toast({ title: 'Order Cancelled', description: 'Your order has been successfully cancelled.' });
+        setCancellingOrder(null);
+        setCancelReason("");
+        fetchOrders(); // Re-fetch orders to show updated status
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Cancellation Failed', description: error.message });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
 
   if (isLoading || authLoading) {
     return (
@@ -69,6 +104,33 @@ export default function OrderGroupDetailPage() {
   }
 
   return (
+    <>
+    <AlertDialog open={!!cancellingOrder} onOpenChange={(open) => { if (!open) setCancellingOrder(null) }}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Cancel Order: {cancellingOrder?.productName}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Please provide a reason for cancelling this item. This cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+             <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="cancel-reason">Reason for Cancellation</Label>
+                <Textarea 
+                    id="cancel-reason"
+                    placeholder="e.g., Ordered by mistake, no longer needed..."
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                />
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Keep Order</AlertDialogCancel>
+                <AlertDialogAction onClick={handleCancelOrder} disabled={isSubmitting}>
+                    {isSubmitting ? 'Cancelling...' : 'Confirm Cancellation'}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
     <div className="container mx-auto px-4 py-8">
       <Button variant="outline" onClick={() => router.push('/orders')} className="mb-8">
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -89,7 +151,7 @@ export default function OrderGroupDetailPage() {
                         <CardTitle className="line-clamp-2">{order.productName}</CardTitle>
                         <CardDescription>Order ID: {order.id}</CardDescription>
                     </div>
-                     <Badge variant={order.status.includes('Delivered') ? 'default' : 'secondary'}>{order.status}</Badge>
+                     <Badge variant={order.status.includes('Delivered') ? 'default' : (order.status.includes('Cancelled') || order.status.includes('Rejected')) ? 'destructive' : 'secondary'}>{order.status}</Badge>
                 </div>
             </CardHeader>
             <CardContent>
@@ -113,9 +175,18 @@ export default function OrderGroupDetailPage() {
                     <OrderTracker trackingInfo={order.tracking} />
                 </div>
             </CardContent>
+            {order.status === 'Pending Confirmation' && (
+                <CardFooter>
+                    <Button variant="destructive" className="w-full sm:w-auto" onClick={() => setCancellingOrder(order)}>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Cancel Item
+                    </Button>
+                </CardFooter>
+            )}
           </Card>
         ))}
       </div>
     </div>
+    </>
   );
 }

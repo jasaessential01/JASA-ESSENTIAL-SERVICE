@@ -200,6 +200,7 @@ export type Order = {
   status: OrderStatus;
   category: "stationary" | "books" | "electronics" | "xerox";
   rejectionReason?: string;
+  cancellationReason?: string;
   returnReason?: string;
   returnType?: 'refund' | 'replacement';
   tracking: OrderTracking;

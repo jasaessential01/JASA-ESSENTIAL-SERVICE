@@ -38,10 +38,12 @@ service cloud.firestore {
       allow create: if request.auth.uid == request.resource.data.userId;
       // User can read their own orders
       allow read: if request.auth.uid == resource.data.userId || isAdmin();
+      
       // User can update their own order only to cancel it, and only if it's pending
       allow update: if request.auth.uid == resource.data.userId &&
                        request.resource.data.status == 'Cancelled' &&
                        resource.data.status == 'Pending Confirmation';
+                       
       // Sellers can read and update orders for their shop
       allow read, update: if isSellerForShop(resource.data.sellerId);
       // Admins have full access
