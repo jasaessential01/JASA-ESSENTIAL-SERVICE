@@ -487,11 +487,11 @@ export default function XeroxPageClient() {
                             <Table>
                                 <TableBody>
                                     <TableRow className="border-0">
-                                        <TableCell className="p-1 text-base text-muted-foreground">Price per copy</TableCell>
+                                        <TableCell className="p-1 text-lg text-muted-foreground">Price per copy</TableCell>
                                         <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {pricePerCopy.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow className="border-0">
-                                        <TableCell className="p-1 text-base text-muted-foreground">Final Price</TableCell>
+                                        <TableCell className="p-1 text-lg text-muted-foreground">Final Price</TableCell>
                                         <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {singleDocPrice.toFixed(2)}</TableCell>
                                     </TableRow>
                                 </TableBody>
@@ -537,38 +537,47 @@ export default function XeroxPageClient() {
               ].filter(d => d.value);
 
               return (
-                <div key={doc.id} className="border-b pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
-                    <div className="flex justify-between items-start mb-2">
-                        <p className="font-medium truncate max-w-xs flex-1">Doc {index + 1}: {doc.fileDetails?.name}</p>
-                        <div className="text-right">
-                           <p className="font-semibold">Rs {docPrice.toFixed(2)}</p>
-                           <p className="text-muted-foreground text-xs">{doc.quantity} x copies</p>
-                        </div>
-                    </div>
-                    <Table className="text-xs">
+                <div key={doc.id} className="border rounded-lg p-4 space-y-3">
+                    <p className="font-medium truncate">Doc {index + 1}: {doc.fileDetails?.name}</p>
+                    
+                    <Table className="text-sm">
                       <TableBody>
                         {details.map(d => (
                           <TableRow key={d.key} className="border-0">
-                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground">{d.key}</TableCell>
+                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">{d.key}</TableCell>
                             <TableCell className="p-1 h-auto">{d.value}</TableCell>
                           </TableRow>
                         ))}
                          {doc.message && (
                           <TableRow className="border-0">
-                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground">Note</TableCell>
+                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Note</TableCell>
                             <TableCell className="p-1 h-auto">{doc.message}</TableCell>
                           </TableRow>
                         )}
+                        <TableRow className="border-0">
+                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Quantity</TableCell>
+                            <TableCell className="p-1 h-auto">{doc.quantity} copies</TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
+
+                    <div className="text-right border-t pt-2">
+                        <p className="text-xl font-bold text-primary">Rs {docPrice.toFixed(2)}</p>
+                    </div>
                 </div>
               )
             })}
           </div>
-          <div className="flex justify-between font-bold text-base border-t-2 pt-2">
-            <p>Final Price</p>
-            <p>Rs {finalTotalPrice.toFixed(2)}</p>
-          </div>
+          
+          <Card className="bg-muted/50">
+            <CardContent className="p-4">
+                <div className="flex justify-between font-bold text-lg">
+                    <p>Final Total Price</p>
+                    <p>Rs {finalTotalPrice.toFixed(2)}</p>
+                </div>
+            </CardContent>
+          </Card>
+
           <Button 
             size="lg" 
             className="w-full"
