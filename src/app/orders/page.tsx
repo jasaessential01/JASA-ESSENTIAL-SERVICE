@@ -143,12 +143,16 @@ export default function OrdersPage() {
                                         <CardTitle className="text-base">Items Ordered ({group.orders.length})</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0 text-sm">
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="space-y-2">
                                             {group.orders.map(order => (
-                                                <Badge key={order.id} variant="secondary" className="font-normal">
-                                                    {order.productName ? `${order.productName.split(' ').slice(0, 2).join(' ')}${order.productName.split(' ').length > 2 ? '...' : ''}` : "Printing Job"}
-                                                    <span className="ml-1.5 rounded-full bg-background px-1.5 text-xs font-semibold">{order.quantity}</span>
-                                                </Badge>
+                                                <div key={order.id} className="flex justify-between items-center text-sm">
+                                                    <p className="font-medium truncate pr-2">
+                                                        {(order.productName || "Printing Job").split(' ').slice(0, 2).join(' ')}{order.productName && order.productName.split(' ').length > 2 ? '...' : ''}
+                                                    </p>
+                                                    <p className="flex-shrink-0 font-semibold bg-background rounded-full px-2 py-0.5">
+                                                        Qty: {order.quantity}
+                                                    </p>
+                                                </div>
                                             ))}
                                         </div>
                                     </CardContent>
