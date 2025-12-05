@@ -56,7 +56,6 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
-  const [isMobileDialogOpen, setIsMobileDialogOpen] = useState(false);
   const [allShops, setAllShops] = useState<Shop[]>([]);
   const [orderSettings, setOrderSettings] = useState<OrderSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -530,8 +529,8 @@ export default function CheckoutPage() {
 
   return (
     <>
-    <Dialog open={orderPlaced}>
-        <DialogContent hideCloseButton>
+    <Dialog open={orderPlaced} hideCloseButton>
+        <DialogContent>
             <div className="flex flex-col items-center justify-center p-8 text-center">
                 <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
                 <h2 className="text-2xl font-bold">Order Placed Successfully!</h2>
