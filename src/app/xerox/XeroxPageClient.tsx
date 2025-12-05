@@ -1004,5 +1004,3 @@ export default function XeroxPageClient() {
     </>
   );
 }
-
-    
