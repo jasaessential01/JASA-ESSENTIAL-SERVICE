@@ -8,7 +8,6 @@ import { getMyOrders } from "@/lib/data";
 import { getShops } from "@/lib/shops";
 import type { Order, Shop } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Phone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,15 +81,14 @@ export default function OrdersPage() {
         return shops.find(shop => shop.id === order.sellerId);
     };
 
-
     if (authLoading || isLoading) {
         return (
             <div className="container mx-auto px-4 py-8">
                 <h1 className="font-headline text-3xl font-bold tracking-tight lg:text-4xl">Order Status & History</h1>
                 <p className="mt-2 text-muted-foreground">Loading your order history...</p>
-                <div className="mt-8 grid gap-6 md:grid-cols-2">
+                <div className="mt-8 grid gap-6 md:grid-cols-1 lg:grid-cols-2">
                     {Array.from({ length: 2 }).map((_, i) => (
-                        <Skeleton key={i} className="h-64 w-full" />
+                        <Skeleton key={i} className="h-72 w-full" />
                     ))}
                 </div>
             </div>
@@ -115,7 +113,7 @@ export default function OrdersPage() {
             <h1 className="font-headline text-3xl font-bold tracking-tight lg:text-4xl">Order Status & History</h1>
             <p className="mt-2 text-muted-foreground">Here are the orders you've placed.</p>
 
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
+            <div className="mt-8 grid gap-6 md:grid-cols-1 lg:grid-cols-2">
                 {sortedGroupIds.map(groupId => {
                     const group = groupedOrders[groupId];
                     const firstOrder = group.orders[0];
@@ -129,8 +127,12 @@ export default function OrdersPage() {
                     return (
                         <Card key={groupId} className="flex flex-col">
                             <CardHeader>
-                                <CardTitle className="break-words text-lg leading-tight">Ordered on {format(firstOrder.createdAt.toDate(), 'PPP, p')}</CardTitle>
-                                <CardDescription className="break-all">Group ID: {groupId}</CardDescription>
+                                <CardTitle className="text-lg leading-tight">
+                                    Ordered on {format(firstOrder.createdAt.toDate(), 'PPP, p')}
+                                </CardTitle>
+                                <CardDescription className="break-all">
+                                    Group ID: {groupId}
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
                                 <div>
@@ -149,16 +151,16 @@ export default function OrdersPage() {
                                 
                                 <Separator />
 
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="space-y-1 text-sm flex-grow basis-1/2">
-                                        <h4 className="text-sm font-semibold mb-2">Price Details</h4>
-                                        <div className="flex justify-between font-medium"><p>Subtotal:</p> <p>Rs {subtotal.toFixed(2)}</p></div>
-                                        <div className="flex justify-between font-medium"><p>Delivery:</p> <p>Rs {totalDelivery.toFixed(2)}</p></div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                    <div className="space-y-1">
+                                        <h4 className="font-semibold mb-2">Price Details</h4>
+                                        <div className="flex justify-between"><p>Subtotal:</p> <p className="font-medium">Rs {subtotal.toFixed(2)}</p></div>
+                                        <div className="flex justify-between"><p>Delivery:</p> <p className="font-medium">Rs {totalDelivery.toFixed(2)}</p></div>
                                         <div className="flex justify-between font-bold text-base mt-1"><p>Total:</p> <p>Rs {total.toFixed(2)}</p></div>
                                     </div>
                                     {shop && (
-                                        <div className="space-y-1 text-sm flex-grow basis-1/2">
-                                            <h4 className="text-sm font-semibold mb-2">Seller Information</h4>
+                                        <div className="space-y-1">
+                                            <h4 className="font-semibold mb-2">Seller Information</h4>
                                             <p className="font-medium">{shop.name}</p>
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <Phone className="h-4 w-4 flex-shrink-0" />
