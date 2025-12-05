@@ -128,47 +128,49 @@ export default function OrdersPage() {
                         <Card key={groupId} className="flex flex-col">
                             <CardHeader>
                                 <CardTitle className="text-lg leading-tight">
-                                    Ordered on {format(firstOrder.createdAt.toDate(), 'PPP, p')}
+                                    Ordered on <span className="block sm:inline">{format(firstOrder.createdAt.toDate(), 'PPP, p')}</span>
                                 </CardTitle>
                                 <CardDescription className="break-all">
                                     Group ID: {groupId}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-2">Items Ordered ({group.orders.length})</h4>
-                                    <div className="space-y-2 text-sm max-h-32 overflow-y-auto pr-2">
+                                <Card className="bg-muted/50">
+                                    <CardHeader className="p-4">
+                                        <CardTitle className="text-base">Items Ordered ({group.orders.length})</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0 text-sm space-y-2">
                                         {group.orders.map(order => (
                                             <div key={order.id} className="flex justify-between items-start gap-2">
-                                                <div className="flex-grow min-w-0">
-                                                  <p className="truncate">{order.productName}</p>
-                                                </div>
-                                                <p className="flex-shrink-0 font-medium">x{order.quantity}</p>
+                                                <p className="truncate font-medium">{order.productName}</p>
+                                                <p className="flex-shrink-0">x{order.quantity}</p>
                                             </div>
                                         ))}
-                                    </div>
-                                </div>
+                                    </CardContent>
+                                </Card>
                                 
-                                <Separator />
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                    <div className="space-y-1">
-                                        <h4 className="font-semibold mb-2">Price Details</h4>
+                                <Card className="bg-muted/50">
+                                     <CardHeader className="p-4">
+                                        <CardTitle className="text-base">Summary</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0 text-sm space-y-2">
                                         <div className="flex justify-between"><p>Subtotal:</p> <p className="font-medium">Rs {subtotal.toFixed(2)}</p></div>
                                         <div className="flex justify-between"><p>Delivery:</p> <p className="font-medium">Rs {totalDelivery.toFixed(2)}</p></div>
-                                        <div className="flex justify-between font-bold text-base mt-1"><p>Total:</p> <p>Rs {total.toFixed(2)}</p></div>
-                                    </div>
-                                    {shop && (
-                                        <div className="space-y-1">
-                                            <h4 className="font-semibold mb-2">Seller Information</h4>
-                                            <p className="font-medium">{shop.name}</p>
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <Phone className="h-4 w-4 flex-shrink-0" />
-                                                <span className="truncate text-muted-foreground">{shop.mobileNumbers?.join(', ')}</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                                        <Separator className="my-2" />
+                                        <div className="flex justify-between font-bold text-base"><p>Total:</p> <p>Rs {total.toFixed(2)}</p></div>
+                                        
+                                        {shop && (
+                                            <>
+                                                <Separator className="my-2" />
+                                                <p className="font-medium">{shop.name}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <Phone className="h-4 w-4 flex-shrink-0" />
+                                                    <span className="truncate text-muted-foreground">{shop.mobileNumbers?.join(', ')}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </CardContent>
                             <CardFooter>
                                 <Button asChild className="w-full">
