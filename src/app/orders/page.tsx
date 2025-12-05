@@ -4,9 +4,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/auth-provider";
 import { useRouter } from "next/navigation";
-import { getMyOrders, updateOrderStatus, requestReturn } from "@/lib/data";
-import type { Order, Shop } from "@/lib/types";
+import { getMyOrders } from "@/lib/data";
 import { getShops } from "@/lib/shops";
+import type { Order, Shop } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ type GroupedOrders = {
     [groupId: string]: {
         orders: Order[];
         createdAt: any;
-        sellerId: string;
     }
 }
 
@@ -66,7 +65,6 @@ export default function OrdersPage() {
                 acc[groupId] = {
                     orders: [],
                     createdAt: order.createdAt,
-                    sellerId: order.sellerId, // Assuming all orders in a group have the same seller
                 };
             }
             acc[groupId].orders.push(order);
@@ -80,9 +78,10 @@ export default function OrdersPage() {
         });
     }, [groupedOrders]);
 
-    const getShopForOrderGroup = (sellerId: string) => {
-        return shops.find(shop => shop.id === sellerId);
+    const getShopForOrder = (order: Order): Shop | undefined => {
+        return shops.find(shop => shop.id === order.sellerId);
     };
+
 
     if (authLoading || isLoading) {
         return (
@@ -120,11 +119,13 @@ export default function OrdersPage() {
                 {sortedGroupIds.map(groupId => {
                     const group = groupedOrders[groupId];
                     const firstOrder = group.orders[0];
-                    const shop = getShopForOrderGroup(firstOrder.sellerId);
-
+                    
                     const total = group.orders.reduce((sum, order) => sum + (order.price * order.quantity + order.deliveryCharge), 0);
                     const subtotal = group.orders.reduce((sum, order) => sum + order.price * order.quantity, 0);
                     const totalDelivery = group.orders.reduce((sum, order) => sum + order.deliveryCharge, 0);
+                    
+                    // Since all orders in a group are from one checkout, they likely have the same seller.
+                    const shop = getShopForOrder(firstOrder);
 
                     return (
                         <Card key={groupId} className="flex flex-col">
