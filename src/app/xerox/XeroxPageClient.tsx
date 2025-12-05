@@ -587,78 +587,49 @@ export default function XeroxPageClient() {
           <CardDescription>Please review the details for each document before proceeding.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-4">
+          <div className="space-y-2">
             {documents.map((doc, index) => {
               const priceInfo = documentPrices.find(p => p.id === doc.id);
               return (
-                <div key={doc.id} className="border rounded-lg p-4 space-y-3 bg-background/50">
-                    <p className="font-medium truncate">Doc {index + 1}: {doc.fileDetails?.name}</p>
-                    
-                    <div className="p-2 border rounded-md bg-background/50">
-                        <Table>
-                            <TableBody>
-                                <TableRow className="border-0">
-                                    <TableCell className="p-1 text-lg text-muted-foreground">Price per page</TableCell>
-                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {(priceInfo?.pricePerPage || 0).toFixed(2)}</TableCell>
-                                </TableRow>
-                                {priceInfo && priceInfo.bindingCost > 0 && (
-                                    <TableRow className="border-0">
-                                        <TableCell className="p-1 text-lg text-muted-foreground">Binding Cost</TableCell>
-                                        <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {priceInfo.bindingCost.toFixed(2)}</TableCell>
-                                    </TableRow>
-                                )}
-                                {priceInfo && priceInfo.laminationCost > 0 && (
-                                    <TableRow className="border-0">
-                                        <TableCell className="p-1 text-lg text-muted-foreground">Lamination Cost</TableCell>
-                                        <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {priceInfo.laminationCost.toFixed(2)}</TableCell>
-                                    </TableRow>
-                                )}
-                                <TableRow className="border-0">
-                                    <TableCell className="p-1 text-lg text-muted-foreground">Final Price</TableCell>
-                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
+                <div key={doc.id} className="flex justify-between items-center text-sm">
+                  <span className="font-medium truncate pr-4">Doc {index + 1}: {doc.fileDetails?.name}</span>
+                  <span className="flex-shrink-0 font-semibold">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</span>
                 </div>
               )
             })}
           </div>
-          
-          <Card className="bg-muted/50">
-            <CardContent className="p-4 space-y-2">
-                <div className="flex justify-between text-base">
-                    <span>Subtotal</span>
-                    <span>Rs {subtotal.toFixed(2)}</span>
-                </div>
-                {deliveryCharge > 0 && (
-                     <div className="flex justify-between text-base text-destructive">
-                        <span>Delivery</span>
-                        <span>Rs {deliveryCharge.toFixed(2)}</span>
-                    </div>
-                )}
-                <Separator />
-                <div className="flex justify-between font-bold text-lg">
-                    <p>Final Total Price</p>
-                    <p>Rs {finalTotalPrice.toFixed(2)}</p>
-                </div>
-            </CardContent>
-          </Card>
-            
-          {deliveryCharge > 0 && orderSettings && (
-                <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Delivery Charge Applied</AlertTitle>
-                    <AlertDescription>
-                        Add documents worth Rs {(orderSettings.minXeroxOrderPrice - subtotal).toFixed(2)} more to get FREE delivery.
-                    </AlertDescription>
-                </Alert>
+          <Separator />
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>Rs {subtotal.toFixed(2)}</span>
+            </div>
+            {deliveryCharge > 0 && (
+              <div className="flex justify-between text-destructive">
+                <span>Delivery</span>
+                <span>Rs {deliveryCharge.toFixed(2)}</span>
+              </div>
             )}
-
+          </div>
+          <Separator />
+          <div className="flex justify-between font-bold text-lg">
+            <p>Final Total Price</p>
+            <p>Rs {finalTotalPrice.toFixed(2)}</p>
+          </div>
+          {deliveryCharge > 0 && orderSettings && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Delivery Charge Applied</AlertTitle>
+              <AlertDescription>
+                Add documents worth Rs {(orderSettings.minXeroxOrderPrice - subtotal).toFixed(2)} more to get FREE delivery.
+              </AlertDescription>
+            </Alert>
+          )}
           <Button 
             size="lg" 
             className="w-full"
             onClick={handleCheckout}
+            disabled={documents.length === 0}
           >
             <CheckCircle className="mr-2 h-5 w-5" />
             Confirm & Proceed to Checkout
@@ -952,3 +923,5 @@ export default function XeroxPageClient() {
     </>
   );
 }
+
+    
