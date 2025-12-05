@@ -276,7 +276,6 @@ export default function XeroxPageClient() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<Record<number, UploadStatus>>({});
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [confirmedDocs, setConfirmedDocs] = useState<number[]>([]);
 
 
   useEffect(() => {
@@ -371,7 +370,6 @@ export default function XeroxPageClient() {
   
   const removeDocument = (id: number) => {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
-    setConfirmedDocs(prev => prev.filter(docId => docId !== id));
   };
 
 
@@ -510,15 +508,6 @@ export default function XeroxPageClient() {
     };
     
     const handleCheckout = async () => {
-        if (confirmedDocs.length !== documents.length) {
-            toast({
-                variant: 'destructive',
-                title: 'Confirmation Required',
-                description: 'Please review and confirm each document by ticking the checkbox.'
-            });
-            return;
-        }
-
         setIsUploading(true);
         setIsRedirecting(false);
 
@@ -586,13 +575,6 @@ export default function XeroxPageClient() {
         }
     };
 
-    const handleConfirmationChange = (docId: number, isChecked: boolean) => {
-        if (isChecked) {
-            setConfirmedDocs(prev => [...prev, docId]);
-        } else {
-            setConfirmedDocs(prev => prev.filter(id => id !== docId));
-        }
-    };
   
   const FinalEstimation = () => {
     if (documents.length === 0) return null;
@@ -608,54 +590,20 @@ export default function XeroxPageClient() {
         return '';
     };
 
-    const deliveryFeePerDoc = documents.length > 0 ? Math.ceil(deliveryCharge / documents.length) : 0;
-
     return (
       <Card>
         <CardHeader>
           <CardTitle>Final Estimation</CardTitle>
-          <CardDescription>Please review and confirm the details for each document before proceeding.</CardDescription>
+          <CardDescription>Please review the details for each document before proceeding.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-4">
             {documents.map((doc, index) => {
               const priceInfo = documentPrices.find(p => p.id === doc.id);
-              const details = [
-                { key: 'Paper', value: getOptionName('paperType', doc.selectedPaperType) },
-                { key: 'Color', value: getOptionName('colorOption', doc.selectedColorOption) },
-                { key: 'Format', value: getOptionName('formatType', doc.selectedFormatType) },
-                { key: 'Ratio', value: getOptionName('printRatio', doc.selectedPrintRatio) },
-              ].filter(d => d.value);
-
               return (
                 <div key={doc.id} className="border rounded-lg p-4 space-y-3 bg-background/50">
                     <p className="font-medium truncate">Doc {index + 1}: {doc.fileDetails?.name}</p>
                     
-                    <Table className="text-sm">
-                      <TableBody>
-                        {details.map(d => (
-                          <TableRow key={d.key} className="border-0">
-                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">{d.key}</TableCell>
-                            <TableCell className="p-1 h-auto">{d.value}</TableCell>
-                          </TableRow>
-                        ))}
-                         <TableRow className="border-0">
-                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Total Pages</TableCell>
-                            <TableCell className="p-1 h-auto">{doc.fileDetails?.pages ?? '...'}</TableCell>
-                        </TableRow>
-                        <TableRow className="border-0">
-                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Quantity</TableCell>
-                            <TableCell className="p-1 h-auto">{doc.quantity} copies</TableCell>
-                        </TableRow>
-                         {doc.message && (
-                          <TableRow className="border-0">
-                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Note</TableCell>
-                            <TableCell className="p-1 h-auto">{doc.message}</TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-
                     <div className="p-2 border rounded-md bg-background/50">
                         <Table>
                             <TableBody>
@@ -677,20 +625,10 @@ export default function XeroxPageClient() {
                                 )}
                                 <TableRow className="border-0">
                                     <TableCell className="p-1 text-lg text-muted-foreground">Final Price</TableCell>
-                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {((priceInfo?.finalPrice || 0) + deliveryFeePerDoc).toFixed(2)}</TableCell>
+                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</TableCell>
                                 </TableRow>
                             </TableBody>
                         </Table>
-                    </div>
-
-                    <div className="flex items-center space-x-2 pt-2 border-t">
-                      <Checkbox id={`confirm-${doc.id}`} onCheckedChange={(checked) => handleConfirmationChange(doc.id, !!checked)} />
-                      <label
-                        htmlFor={`confirm-${doc.id}`}
-                        className="text-sm font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        I confirm the details for this document are correct.
-                      </label>
                     </div>
                 </div>
               )
@@ -698,7 +636,18 @@ export default function XeroxPageClient() {
           </div>
           
           <Card className="bg-muted/50">
-            <CardContent className="p-4">
+            <CardContent className="p-4 space-y-2">
+                <div className="flex justify-between text-base">
+                    <span>Subtotal</span>
+                    <span>Rs {subtotal.toFixed(2)}</span>
+                </div>
+                {deliveryCharge > 0 && (
+                     <div className="flex justify-between text-base text-destructive">
+                        <span>Delivery</span>
+                        <span>Rs {deliveryCharge.toFixed(2)}</span>
+                    </div>
+                )}
+                <Separator />
                 <div className="flex justify-between font-bold text-lg">
                     <p>Final Total Price</p>
                     <p>Rs {finalTotalPrice.toFixed(2)}</p>
@@ -720,7 +669,6 @@ export default function XeroxPageClient() {
             size="lg" 
             className="w-full"
             onClick={handleCheckout}
-            disabled={confirmedDocs.length !== documents.length}
           >
             <CheckCircle className="mr-2 h-5 w-5" />
             Confirm & Proceed to Checkout
