@@ -82,6 +82,14 @@ type UploadStatus = {
 
 const MAX_WORDS = 100;
 
+type DocumentPriceDetails = {
+    id: number;
+    pricePerPage: number;
+    bindingCost: number;
+    laminationCost: number;
+    finalPrice: number;
+};
+
 const DocumentCard = ({ document, index, removeDocument, updateDocumentState, paperTypes, allOptions, documentPrices, isLoading }: { 
     document: DocumentState, 
     index: number, 
@@ -89,11 +97,10 @@ const DocumentCard = ({ document, index, removeDocument, updateDocumentState, pa
     updateDocumentState: (id: number, updates: Partial<DocumentState>) => void,
     paperTypes: XeroxOption[],
     allOptions: { bindingTypes: XeroxOption[], laminationTypes: XeroxOption[] },
-    documentPrices: { id: number, price: number }[],
+    documentPrices: DocumentPriceDetails[],
     isLoading: boolean
 }) => {
-    const singleDocPrice = documentPrices.find(p => p.id === document.id)?.price || 0;
-    const pricePerCopy = document.quantity > 0 ? singleDocPrice / document.quantity : 0;
+    const priceDetails = documentPrices.find(p => p.id === document.id);
     
     const renderOptionSelect = (
         id: string, label: string, selectedValue: string | undefined,
@@ -126,11 +133,11 @@ const DocumentCard = ({ document, index, removeDocument, updateDocumentState, pa
 
     return (
         <Card className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-sky-100 to-white dark:from-sky-900 dark:to-black z-0"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-sky-100 to-white dark:from-sky-900/50 dark:to-black z-0"></div>
             <div className="relative z-10">
                 <CardHeader className="p-4 flex flex-row justify-between items-center bg-transparent">
                      <p className="font-semibold truncate">Document {index + 1}</p>
-                     <AlertDialog>
+                    <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
                             <Trash2 className="h-5 w-5 text-red-500" />
@@ -157,14 +164,17 @@ const DocumentCard = ({ document, index, removeDocument, updateDocumentState, pa
                     <div className="p-2 border rounded-md w-full overflow-x-auto no-scrollbar bg-background/50">
                         <p className="text-sm font-medium whitespace-nowrap">{document.fileDetails?.name || "Processing..."}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-2 border rounded-md bg-background/50">
-                            <p className="text-xs text-muted-foreground">Document Type</p>
-                            <p className="text-sm font-medium uppercase">{document.fileDetails?.type.split('/')[1] || 'N/A'}</p>
-                        </div>
-                         <div className="p-2 border rounded-md bg-background/50">
-                            <p className="text-xs text-muted-foreground">No. of Pages</p>
-                            {document.fileDetails?.pages === undefined ? <Loader2 className="h-5 w-5 animate-spin"/> : <p className="text-sm font-medium">{document.fileDetails.pages}</p>}
+
+                    <div className="p-2 border rounded-md bg-background/50">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-xs text-muted-foreground">Document Type</p>
+                                <p className="text-sm font-medium uppercase truncate">{document.fileDetails?.type.split('/')[1] || 'N/A'}</p>
+                            </div>
+                             <div>
+                                <p className="text-xs text-muted-foreground">No. of Pages</p>
+                                {document.fileDetails?.pages === undefined ? <Loader2 className="h-5 w-5 animate-spin"/> : <p className="text-sm font-medium">{document.fileDetails.pages}</p>}
+                            </div>
                         </div>
                     </div>
     
@@ -210,17 +220,28 @@ const DocumentCard = ({ document, index, removeDocument, updateDocumentState, pa
                         <Table>
                             <TableBody>
                                 <TableRow className="border-0">
-                                    <TableCell className="p-1 text-lg text-muted-foreground">Price per copy</TableCell>
-                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {pricePerCopy.toFixed(2)}</TableCell>
+                                    <TableCell className="p-1 text-lg text-muted-foreground">Price per page</TableCell>
+                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {(priceDetails?.pricePerPage || 0).toFixed(2)}</TableCell>
                                 </TableRow>
+                                {priceDetails && priceDetails.bindingCost > 0 && (
+                                    <TableRow className="border-0">
+                                        <TableCell className="p-1 text-lg text-muted-foreground">Binding Cost</TableCell>
+                                        <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {priceDetails.bindingCost.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                )}
+                                {priceDetails && priceDetails.laminationCost > 0 && (
+                                    <TableRow className="border-0">
+                                        <TableCell className="p-1 text-lg text-muted-foreground">Lamination Cost</TableCell>
+                                        <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {priceDetails.laminationCost.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                )}
                                 <TableRow className="border-0">
                                     <TableCell className="p-1 text-lg text-muted-foreground">Final Price</TableCell>
-                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {singleDocPrice.toFixed(2)}</TableCell>
+                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {(priceDetails?.finalPrice || 0).toFixed(2)}</TableCell>
                                 </TableRow>
                             </TableBody>
                         </Table>
                     </div>
-    
                 </CardContent>
             </div>
         </Card>
@@ -375,41 +396,39 @@ export default function XeroxPageClient() {
     }
   }
 
-  const calculateDocumentPrice = useCallback((doc: DocumentState) => {
-    if (!doc.currentPaperDetails || !doc.fileDetails?.pages) return 0;
-      
+  const calculateDocumentPrice = useCallback((doc: DocumentState): DocumentPriceDetails => {
+    const result = { id: doc.id, pricePerPage: 0, bindingCost: 0, laminationCost: 0, finalPrice: 0 };
+    if (!doc.currentPaperDetails || !doc.fileDetails?.pages) return result;
+
     const colorOption = HARDCODED_XEROX_OPTIONS.colorOptions.find(o => o.id === doc.selectedColorOption);
     const formatType = HARDCODED_XEROX_OPTIONS.formatTypes.find(o => o.id === doc.selectedFormatType);
     const printRatio = HARDCODED_XEROX_OPTIONS.printRatios.find(o => o.id === doc.selectedPrintRatio);
     const bindingType = allOptions.bindingTypes.find(o => o.id === doc.selectedBindingType);
     const laminationType = allOptions.laminationTypes.find(o => o.id === doc.selectedLaminationType);
     
-    const pricePerPage = colorOption?.name === 'Gradient / Colour' ? doc.currentPaperDetails.priceColor ?? 0 : doc.currentPaperDetails.priceBw ?? 0;
+    const basePricePerPage = colorOption?.name === 'Gradient / Colour' ? doc.currentPaperDetails.priceColor ?? 0 : doc.currentPaperDetails.priceBw ?? 0;
+    const pricePerPageAfterRatio = printRatio?.name === '1:2 (Two pages per sheet)' ? basePricePerPage / 2 : basePricePerPage;
+    result.pricePerPage = pricePerPageAfterRatio;
+
     const documentPages = doc.fileDetails.pages;
-    
     const physicalPages = formatType?.name === 'Front and Back' ? Math.ceil(documentPages / 2) : documentPages;
-    let printingCost = physicalPages * pricePerPage;
+    const printingCost = physicalPages * pricePerPageAfterRatio;
 
-    if (printRatio?.name === '1:2 (Two pages per sheet)') {
-        printingCost /= 2;
-    }
+    result.bindingCost = bindingType?.price || 0;
+    result.laminationCost = laminationType?.price || 0;
 
-    const bindingCost = bindingType?.price || 0;
-    const laminationCost = laminationType?.price || 0;
+    const singleCopyPrice = printingCost + result.bindingCost + result.laminationCost;
+    result.finalPrice = singleCopyPrice * doc.quantity;
 
-    const singleCopyPrice = printingCost + bindingCost + laminationCost;
-    return singleCopyPrice * doc.quantity;
-  }, [allOptions.bindingTypes, allOptions.laminationTypes]);
+    return result;
+}, [allOptions.bindingTypes, allOptions.laminationTypes]);
 
   const documentPrices = useMemo(() => {
-    return documents.map(doc => ({
-      id: doc.id,
-      price: calculateDocumentPrice(doc)
-    }));
+    return documents.map(doc => calculateDocumentPrice(doc));
   }, [documents, calculateDocumentPrice]);
 
   const finalTotalPrice = useMemo(() => {
-    return documentPrices.reduce((total, item) => total + item.price, 0);
+    return documentPrices.reduce((total, item) => total + item.finalPrice, 0);
   }, [documentPrices]);
   
     const uploadSingleDocument = async (doc: DocumentState) => {
@@ -490,7 +509,7 @@ export default function XeroxPageClient() {
             const urls = await Promise.all(uploadPromises);
 
             const xeroxJobsForStorage = documents.map((doc, index) => {
-                const price = documentPrices.find(p => p.id === doc.id)?.price || 0;
+                const priceInfo = documentPrices.find(p => p.id === doc.id);
                 return {
                     id: `${Date.now()}-${doc.id}`,
                     fileDetails: {
@@ -499,7 +518,7 @@ export default function XeroxPageClient() {
                         url: urls[index],
                     },
                     pageCount: doc.fileDetails!.pages || 0,
-                    price: price / doc.quantity,
+                    price: priceInfo ? priceInfo.finalPrice / doc.quantity : 0,
                     config: {
                         paperType: doc.selectedPaperType,
                         colorOption: doc.selectedColorOption,
@@ -564,7 +583,7 @@ export default function XeroxPageClient() {
         <CardContent className="space-y-4">
           <div className="space-y-4">
             {documents.map((doc, index) => {
-              const docPrice = documentPrices.find(p => p.id === doc.id)?.price || 0;
+              const priceInfo = documentPrices.find(p => p.id === doc.id);
               const details = [
                 { key: 'Paper', value: getOptionName('paperType', doc.selectedPaperType) },
                 { key: 'Color', value: getOptionName('colorOption', doc.selectedColorOption) },
@@ -575,7 +594,7 @@ export default function XeroxPageClient() {
               ].filter(d => d.value);
 
               return (
-                <div key={doc.id} className="border rounded-lg p-4 space-y-3">
+                <div key={doc.id} className="border rounded-lg p-4 space-y-3 bg-background/50">
                     <p className="font-medium truncate">Doc {index + 1}: {doc.fileDetails?.name}</p>
                     
                     <Table className="text-sm">
@@ -590,21 +609,33 @@ export default function XeroxPageClient() {
                             <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Total Pages</TableCell>
                             <TableCell className="p-1 h-auto">{doc.fileDetails?.pages ?? '...'}</TableCell>
                         </TableRow>
+                        <TableRow className="border-0">
+                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Quantity</TableCell>
+                            <TableCell className="p-1 h-auto">{doc.quantity} copies</TableCell>
+                        </TableRow>
                          {doc.message && (
                           <TableRow className="border-0">
                             <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Note</TableCell>
                             <TableCell className="p-1 h-auto">{doc.message}</TableCell>
                           </TableRow>
                         )}
-                        <TableRow className="border-0">
-                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Quantity</TableCell>
-                            <TableCell className="p-1 h-auto">{doc.quantity} copies</TableCell>
-                        </TableRow>
+                        {priceInfo && priceInfo.bindingCost > 0 && (
+                            <TableRow className="border-0">
+                                <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Binding Cost</TableCell>
+                                <TableCell className="p-1 h-auto">Rs {priceInfo.bindingCost.toFixed(2)}</TableCell>
+                            </TableRow>
+                        )}
+                        {priceInfo && priceInfo.laminationCost > 0 && (
+                             <TableRow className="border-0">
+                                <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Lamination Cost</TableCell>
+                                <TableCell className="p-1 h-auto">Rs {priceInfo.laminationCost.toFixed(2)}</TableCell>
+                            </TableRow>
+                        )}
                       </TableBody>
                     </Table>
 
                     <div className="text-right border-t pt-2">
-                        <p className="text-xl font-bold text-primary">Rs {docPrice.toFixed(2)}</p>
+                        <p className="text-xl font-bold text-primary">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</p>
                     </div>
                 </div>
               )
