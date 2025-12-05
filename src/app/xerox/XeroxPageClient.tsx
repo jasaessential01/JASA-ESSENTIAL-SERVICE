@@ -586,6 +586,10 @@ export default function XeroxPageClient() {
                             <TableCell className="p-1 h-auto">{d.value}</TableCell>
                           </TableRow>
                         ))}
+                        <TableRow className="border-0">
+                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Total Pages</TableCell>
+                            <TableCell className="p-1 h-auto">{doc.fileDetails?.pages ?? '...'}</TableCell>
+                        </TableRow>
                          {doc.message && (
                           <TableRow className="border-0">
                             <TableCell className="font-semibold p-1 h-auto text-muted-foreground w-1/3">Note</TableCell>
