@@ -203,7 +203,7 @@ export default function Home() {
       <section>
         <div className="mb-4 flex items-center justify-between">
             <h2 className="font-headline text-2xl font-bold tracking-tight sm:text-3xl">{catInfo.title}</h2>
-            <Button asChild className="rounded-full bg-[#4169E1] text-white hover:bg-[#4169E1]/90 transition-transform active:scale-95">
+            <Button asChild className="rounded-full bg-gradient-to-r from-blue-500 to-sky-400 text-white hover:opacity-90 transition-transform active:scale-95">
               <Link href={catInfo.href}>
                 <span>View All</span>
                 <ArrowRight className="ml-2 h-4 w-4" />
