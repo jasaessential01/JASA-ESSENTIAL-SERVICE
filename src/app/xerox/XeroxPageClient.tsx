@@ -7,7 +7,7 @@ import type { XeroxService, XeroxOption, PaperSample } from "@/lib/types";
 import { HARDCODED_XEROX_OPTIONS } from "@/lib/xerox-options";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, Loader2, FileUp, XCircle, FileText, ShoppingCart, Plus, Minus, Pencil, ListOrdered, Images, Link as LinkIcon, CheckCircle, RefreshCw } from "lucide-react";
+import { Loader2, FileUp, XCircle, FileText, ShoppingCart, Plus, Minus, Pencil, ListOrdered, Images, Link as LinkIcon, CheckCircle, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,17 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -71,7 +82,6 @@ type UploadStatus = {
 
 const MAX_WORDS = 100;
 
-// Moved DocumentCard outside of XeroxPageClient to prevent re-renders on state change
 const DocumentCard = ({ document, index, removeDocument, updateDocumentState, paperTypes, allOptions, documentPrices, isLoading }: { 
     document: DocumentState, 
     index: number, 
@@ -120,9 +130,27 @@ const DocumentCard = ({ document, index, removeDocument, updateDocumentState, pa
             <div className="relative z-10">
                 <CardHeader className="p-4 flex flex-row justify-between items-center bg-transparent">
                      <p className="font-semibold truncate">Document {index + 1}</p>
-                     <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removeDocument(document.id)}>
-                        <XCircle className="h-5 w-5 text-red-500" />
-                    </Button>
+                     <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
+                            <Trash2 className="h-5 w-5 text-red-500" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will remove the document "{document.fileDetails?.name}" from your list. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => removeDocument(document.id)}>
+                            Remove
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                 </CardHeader>
     
                 <CardContent className="p-4 space-y-4">
@@ -197,7 +225,7 @@ const DocumentCard = ({ document, index, removeDocument, updateDocumentState, pa
             </div>
         </Card>
     );
-  };
+};
 
 export default function XeroxPageClient() {
   const [services, setServices] = useState<XeroxService[]>([]);
