@@ -16,6 +16,7 @@ import Link from "next/link";
 import { format } from 'date-fns';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 
 type GroupedOrders = {
@@ -142,24 +143,14 @@ export default function OrdersPage() {
                                         <CardTitle className="text-base">Items Ordered ({group.orders.length})</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0 text-sm">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Item</TableHead>
-                                                    <TableHead className="text-right">Qty</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {group.orders.map(order => (
-                                                    <TableRow key={order.id}>
-                                                        <TableCell className="font-medium">
-                                                            {order.productName ? `${order.productName.split(' ').slice(0, 2).join(' ')}${order.productName.split(' ').length > 2 ? '...' : ''}` : "Printing Job"}
-                                                        </TableCell>
-                                                        <TableCell className="text-right">{order.quantity}</TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
+                                        <div className="flex flex-wrap gap-2">
+                                            {group.orders.map(order => (
+                                                <Badge key={order.id} variant="secondary" className="font-normal">
+                                                    {order.productName ? `${order.productName.split(' ').slice(0, 2).join(' ')}${order.productName.split(' ').length > 2 ? '...' : ''}` : "Printing Job"}
+                                                    <span className="ml-1.5 rounded-full bg-background px-1.5 text-xs font-semibold">{order.quantity}</span>
+                                                </Badge>
+                                            ))}
+                                        </div>
                                     </CardContent>
                                 </Card>
                                 
