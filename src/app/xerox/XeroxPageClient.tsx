@@ -1,10 +1,9 @@
 
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { getXeroxServices, getXeroxOptions, getPaperSamples, getOrderSettings } from "@/lib/data";
-import type { XeroxService, XeroxOption, PaperSample, OrderSettings } from "@/lib/types";
+import type { XeroxService, XeroxOption, PaperSample, OrderSettings, XeroxDocument as StoredXeroxJob } from "@/lib/types";
 import { HARDCODED_XEROX_OPTIONS } from "@/lib/xerox-options";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -298,6 +297,21 @@ export default function XeroxPageClient() {
         setAllOptions({ bindingTypes, laminationTypes });
         setPaperSamples(fetchedPaperSamples);
         setOrderSettings(fetchedOrderSettings);
+
+        // Load documents from session storage after fetching necessary data
+        const storedDocs = sessionStorage.getItem('xeroxDocuments');
+        if (storedDocs) {
+            const parsedDocs: DocumentState[] = JSON.parse(storedDocs);
+            if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
+                // We need to re-create file objects as they can't be stored in JSON
+                const restoredDocs = parsedDocs.map(doc => ({
+                    ...doc,
+                    file: new File([], doc.fileDetails?.name || 'restored-file', { type: doc.fileDetails?.type }),
+                }));
+                setDocuments(restoredDocs);
+                nextId.current = Math.max(...restoredDocs.map(d => d.id)) + 1;
+            }
+        }
         
       } catch (err) {
         setError("Failed to load printing services. Please try again later.");
@@ -309,6 +323,14 @@ export default function XeroxPageClient() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (documents.length > 0) {
+        sessionStorage.setItem('xeroxDocuments', JSON.stringify(documents));
+    } else {
+        sessionStorage.removeItem('xeroxDocuments');
+    }
+  }, [documents]);
 
   useEffect(() => {
     if (searchParams.get('upload') === 'true' && fileInputRef.current) {
@@ -519,7 +541,7 @@ export default function XeroxPageClient() {
                 fileDetails: {
                     name: doc.fileDetails!.name,
                     type: doc.fileDetails!.type,
-                    url: uploadStatus[doc.id]?.url || '', // Use stored URL or empty if failed
+                    url: uploadStatus[doc.id]?.url || '',
                 },
                 pageCount: doc.fileDetails!.pages || 0,
                 price: priceInfo ? priceInfo.finalPrice / doc.quantity : 0,
@@ -551,6 +573,7 @@ export default function XeroxPageClient() {
         
         try {
             await Promise.all(documents.map(doc => uploadSingleDocument(doc)));
+            // If all uploads are successful, redirect immediately
             handleProceedToCheckout();
         } catch (error) {
             // Error is handled in the dialog, no need to show another toast here.
@@ -562,7 +585,6 @@ export default function XeroxPageClient() {
         const docToRetry = documents.find(d => d.id === docId);
         if (docToRetry) {
             uploadSingleDocument(docToRetry).catch(err => {
-                // Error is handled inside uploadSingleDocument
                 console.error("Retry failed", err);
             });
         }
@@ -601,6 +623,7 @@ export default function XeroxPageClient() {
                   { label: 'Ratio', value: getOptionName('printRatio', doc.selectedPrintRatio) },
                   { label: 'Binding', value: getOptionName('bindingType', doc.selectedBindingType) },
                   { label: 'Lamination', value: getOptionName('laminationType', doc.selectedLaminationType) },
+                  { label: 'Instructions', value: doc.message },
               ].filter(d => d.value && d.value !== 'N/A');
 
               return (
@@ -936,7 +959,3 @@ export default function XeroxPageClient() {
     </>
   );
 }
-
-    
-
-    

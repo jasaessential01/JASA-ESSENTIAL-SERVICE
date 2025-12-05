@@ -55,7 +55,7 @@ const addressSchema = z.object({
 
 const mobileSchema = z.object({
     mobile: z.string().regex(/^\d{10}$/, "A valid 10-digit mobile number is required."),
-    altMobiles: z.array(z.object({ value: z.string().regex(/^\d{10}$/, "Must be 10 digits.").or(z.literal('')) })).optional(),
+    altMobiles: z.array(z.object({ value: z.string().min(10, "Alternate number must be 10 digits.") })).min(1, "At least one alternate mobile number is required."),
 });
 
 const checkoutFormSchema = z.object({
@@ -89,7 +89,7 @@ export default function XeroxCheckoutPage() {
     resolver: zodResolver(mobileSchema),
     defaultValues: { 
         mobile: user?.mobile || '',
-        altMobiles: user?.altMobiles?.map(alt => ({ value: alt.value || '' })) || [],
+        altMobiles: user?.altMobiles?.length ? user.altMobiles.map(alt => ({ value: alt.value || '' })) : [{ value: ''}],
     }
   });
 
@@ -126,7 +126,7 @@ export default function XeroxCheckoutPage() {
         }
         mobileForm.reset({ 
             mobile: user.mobile || '',
-            altMobiles: user.altMobiles?.map(alt => ({ value: alt.value || '' })) || [],
+            altMobiles: user.altMobiles?.length ? user.altMobiles.map(alt => ({ value: alt.value || '' })) : [{ value: '' }],
         });
     }
     
@@ -211,15 +211,9 @@ export default function XeroxCheckoutPage() {
 
   async function onCheckoutSubmit(values: z.infer<typeof checkoutFormSchema>) {
     const mobileData = mobileForm.getValues();
-    if (!mobileData.mobile) {
-      toast({ variant: 'destructive', title: 'Mobile Number Required', description: 'Please confirm your mobile number.' });
-      mobileForm.trigger('mobile');
-      return;
-    }
-    
     const isValid = await mobileForm.trigger();
     if (!isValid) {
-       toast({ variant: 'destructive', title: 'Invalid Mobile Number', description: 'Please check your mobile numbers.' });
+       toast({ variant: 'destructive', title: 'Invalid Mobile Number', description: 'Please check your mobile numbers. At least one alternate number is required.' });
        return;
     }
 
@@ -324,7 +318,7 @@ export default function XeroxCheckoutPage() {
         <CardHeader>
           <CardTitle className="font-headline">2. Contact Information</CardTitle>
           <CardDescription>
-            Confirm your mobile number for delivery updates.
+            Confirm your mobile number for delivery updates. At least one alternate number is required.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -357,6 +351,7 @@ export default function XeroxCheckoutPage() {
               {altMobilesFields.length < 2 && (
                 <Button type="button" variant="outline" size="sm" onClick={() => appendAltMobile({ value: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Alternate</Button>
               )}
+               <FormField control={mobileForm.control} name="altMobiles" render={({ field }) => <FormMessage {...field} />} />
             </div>
           </Form>
         </CardContent>
@@ -462,6 +457,7 @@ export default function XeroxCheckoutPage() {
                         { label: 'Ratio', value: getOptionName('printRatio', job.config.printRatio) },
                         { label: 'Binding', value: getOptionName('bindingType', job.config.bindingType) },
                         { label: 'Lamination', value: getOptionName('laminationType', job.config.laminationType) },
+                        { label: 'Instructions', value: job.config.message },
                     ].filter(d => d.value);
 
                     return (

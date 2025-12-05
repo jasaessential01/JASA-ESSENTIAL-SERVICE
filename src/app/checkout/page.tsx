@@ -39,7 +39,7 @@ const addressSchema = z.object({
 
 const mobileSchema = z.object({
     mobile: z.string().min(10, "A valid 10-digit mobile number is required.").max(10),
-    altMobiles: z.array(z.object({ value: z.string().min(10, "Must be 10 digits.").max(10).or(z.literal('')) })).optional(),
+    altMobiles: z.array(z.object({ value: z.string().min(10, "Alternate number must be 10 digits.") })).min(1, "At least one alternate mobile number is required."),
 });
 
 
@@ -113,7 +113,7 @@ export default function CheckoutPage() {
     if (user) {
         mobileForm.reset({
             mobile: user.mobile || '',
-            altMobiles: user.altMobiles?.map(alt => ({ value: alt.value || '' })) || [{ value: '' }],
+            altMobiles: user.altMobiles?.length ? user.altMobiles.map(alt => ({ value: alt.value || '' })) : [{ value: '' }],
         });
     }
     
@@ -229,7 +229,7 @@ export default function CheckoutPage() {
     // --- Xerox Items Order Creation ---
     const xeroxItems = cartItems.filter(item => item.type === 'xerox') as (CartItem & {type: 'xerox', xerox: XeroxDocument})[];
     let xeroxDeliveryCharge = 0;
-    if (xeroxItems.length > 0 && xeroxSubtotal < orderSettings.minXeroxOrderPrice) {
+    if (xeroxSubtotal > 0 && xeroxSubtotal < orderSettings.minXeroxOrderPrice) {
         xeroxDeliveryCharge = orderSettings.xeroxDeliveryCharge;
     }
     const xeroxSellerId = values['xerox' as keyof typeof values];
@@ -306,17 +306,12 @@ export default function CheckoutPage() {
     }
 
     const mobileData = mobileForm.getValues();
-    if (!mobileData.mobile) {
-      toast({ variant: 'destructive', title: 'Mobile Number Required', description: 'Please enter and save your mobile number.' });
-      mobileForm.trigger('mobile');
-      return;
-    }
     
     const isValid = await mobileForm.trigger();
     if (isValid) {
       await onMobileSubmit(mobileData);
     } else {
-       toast({ variant: 'destructive', title: 'Invalid Mobile Number', description: 'Please check your mobile numbers.' });
+       toast({ variant: 'destructive', title: 'Invalid Mobile Number', description: 'Please check your mobile numbers. At least one alternate number is required.' });
     }
   }
   
@@ -426,22 +421,13 @@ export default function CheckoutPage() {
                     name={`altMobiles.${index}.value`}
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Alternate Mobile Number (Optional)</FormLabel>
+                        <FormLabel>Alternate Mobile Number</FormLabel>
                         <FormControl><Input {...field} value={field.value || ''} type="tel" placeholder="Another 10-digit number" /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
               ))}
-               <Button
-                type="button"
-                variant="link"
-                className="p-0 h-auto"
-                onClick={mobileForm.handleSubmit(onMobileSubmit)}
-                disabled={isPlacingOrder}
-              >
-                Save Contact Info
-              </Button>
             </div>
           </Form>
         </CardContent>
@@ -517,7 +503,7 @@ export default function CheckoutPage() {
 
   return (
     <>
-    <Dialog open={orderPlaced} hideCloseButton>
+    <Dialog open={orderPlaced}>
         <DialogContent>
             <div className="flex flex-col items-center justify-center p-8 text-center">
                 <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
