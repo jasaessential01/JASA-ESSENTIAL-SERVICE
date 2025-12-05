@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -579,17 +580,6 @@ export default function XeroxPageClient() {
   const FinalEstimation = () => {
     if (documents.length === 0) return null;
 
-    const getOptionName = (type: 'paperType' | 'colorOption' | 'formatType' | 'printRatio' | 'bindingType' | 'laminationType', id: string): string => {
-        if (!id || id === 'none') return '';
-        if (type === 'paperType') return paperTypes.find(o => o.id === id)?.name || '';
-        if (type === 'colorOption') return HARDCODED_XEROX_OPTIONS.colorOptions.find(o => o.id === id)?.name || '';
-        if (type === 'formatType') return HARDCODED_XEROX_OPTIONS.formatTypes.find(o => o.id === id)?.name || '';
-        if (type === 'printRatio') return HARDCODED_XEROX_OPTIONS.printRatios.find(o => o.id === id)?.name || '';
-        if (type === 'bindingType') return allOptions.bindingTypes.find(o => o.id === id)?.name || '';
-        if (type === 'laminationType') return allOptions.laminationTypes.find(o => o.id === id)?.name || '';
-        return '';
-    };
-
     return (
       <Card>
         <CardHeader>
@@ -962,5 +952,3 @@ export default function XeroxPageClient() {
     </>
   );
 }
-
-    
