@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
@@ -534,29 +533,30 @@ export default function XeroxPageClient() {
               ].filter(d => d.value);
 
               return (
-                <div key={doc.id} className="border-b pb-3 mb-3">
+                <div key={doc.id} className="border-b pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
                     <div className="flex justify-between items-start mb-2">
                         <p className="font-medium truncate max-w-xs flex-1">Doc {index + 1}: {doc.fileDetails?.name}</p>
                         <div className="text-right">
                            <p className="font-semibold">Rs {docPrice.toFixed(2)}</p>
-                           <p className="text-muted-foreground text-xs">{doc.quantity} x copies</p>
+                           <p className="text-muted-foreground text-xs">{doc.config.quantity} x copies</p>
                         </div>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <Table className="text-xs">
+                      <TableBody>
                         {details.map(d => (
-                            <div key={d.key} className="flex">
-                                <span className="font-semibold text-foreground/80 w-16 shrink-0">{d.key}:</span>
-                                <span>{d.value}</span>
-                            </div>
+                          <TableRow key={d.key} className="border-0">
+                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground">{d.key}</TableCell>
+                            <TableCell className="p-1 h-auto">{d.value}</TableCell>
+                          </TableRow>
                         ))}
-                    </div>
-                    
-                    {doc.message && (
-                        <div className="mt-2 text-xs text-muted-foreground">
-                             <span className="font-semibold text-foreground/80">Note:</span> {doc.message}
-                        </div>
-                    )}
+                         {doc.message && (
+                          <TableRow className="border-0">
+                            <TableCell className="font-semibold p-1 h-auto text-muted-foreground">Note</TableCell>
+                            <TableCell className="p-1 h-auto">{doc.message}</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                 </div>
               )
             })}
