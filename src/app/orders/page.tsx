@@ -160,9 +160,9 @@ export default function OrdersPage() {
                                         <div className="space-y-1 text-sm flex-grow basis-1/2">
                                             <h4 className="text-sm font-semibold mb-2">Seller Information</h4>
                                             <p className="font-medium">{shop.name}</p>
-                                            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                                            <div className="flex items-center gap-2 min-w-0">
                                                 <Phone className="h-4 w-4 flex-shrink-0" />
-                                                <span className="truncate">{shop.mobileNumbers?.join(', ')}</span>
+                                                <span className="truncate text-muted-foreground">{shop.mobileNumbers?.join(', ')}</span>
                                             </div>
                                         </div>
                                     )}
