@@ -124,7 +124,6 @@ export default function OrdersPage() {
                     const subtotal = group.orders.reduce((sum, order) => sum + order.price * order.quantity, 0);
                     const totalDelivery = group.orders.reduce((sum, order) => sum + order.deliveryCharge, 0);
                     
-                    // Since all orders in a group are from one checkout, they likely have the same seller.
                     const shop = getShopForOrder(firstOrder);
 
                     return (
@@ -161,7 +160,7 @@ export default function OrdersPage() {
                                         <div className="space-y-1 text-sm">
                                             <h4 className="text-sm font-semibold mb-2">Seller Information</h4>
                                             <p className="font-medium">{shop.name}</p>
-                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
                                                 <Phone className="h-4 w-4 flex-shrink-0" />
                                                 <span className="truncate">{shop.mobileNumbers?.join(', ')}</span>
                                             </div>
