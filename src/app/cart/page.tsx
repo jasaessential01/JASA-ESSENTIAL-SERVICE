@@ -175,24 +175,18 @@ export default function CartPage() {
         const xeroxItems = selectedCartItems.filter(item => item.type === 'xerox') as (CartItem & {type: 'xerox', xerox: XeroxDocument})[];
         
         const itemsSubtotal = productItems.reduce((acc, item) => acc + (item.product.discountPrice || item.product.price) * item.quantity, 0);
-        const totalItemCount = productItems.reduce((acc, item) => acc + item.quantity, 0);
         
         const originalItemsTotal = productItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
         const savings = originalItemsTotal - itemsSubtotal;
 
         let deliveryFee = 0;
-        if (orderSettings && totalItemCount > 0 && itemsSubtotal < orderSettings.minItemOrderForFreeDelivery) {
-            let chargePerItem = 0;
-            if (totalItemCount <= 5) chargePerItem = orderSettings.itemChargeTier1;
-            else if (totalItemCount <= 10) chargePerItem = orderSettings.itemChargeTier2;
-            else if (totalItemCount <= 15) chargePerItem = orderSettings.itemChargeTier3;
-            else chargePerItem = orderSettings.itemChargeTier4;
-            deliveryFee = chargePerItem * totalItemCount;
+        if (orderSettings && productItems.length > 0 && itemsSubtotal < orderSettings.minItemOrderForFreeDelivery) {
+            deliveryFee = orderSettings.itemDeliveryCharge || 0;
         }
 
         const xeroxSubtotal = xeroxItems.reduce((acc, item) => acc + item.price, 0);
         let xeroxDeliveryFee = 0;
-        if (orderSettings && xeroxSubtotal > 0 && xeroxSubtotal < orderSettings.minXeroxOrderPrice) {
+        if (orderSettings && xeroxItems.length > 0 && xeroxSubtotal < orderSettings.minXeroxOrderPrice) {
             xeroxDeliveryFee = orderSettings.xeroxDeliveryCharge;
         }
 

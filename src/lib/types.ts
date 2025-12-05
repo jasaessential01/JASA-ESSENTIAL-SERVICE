@@ -270,11 +270,8 @@ export type XeroxOption = {
 };
 
 export type OrderSettings = {
-  itemChargeTier1: number; // 1-5 items
-  itemChargeTier2: number; // 6-10 items
-  itemChargeTier3: number; // 11-15 items
-  itemChargeTier4: number; // 16+ items
-  minItemOrderForFreeDelivery: number; // New field for overall free delivery threshold
+  itemDeliveryCharge: number;
+  minItemOrderForFreeDelivery: number;
   minXeroxOrderPrice: number;
   xeroxDeliveryCharge: number;
 };

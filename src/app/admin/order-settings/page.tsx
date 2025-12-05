@@ -32,20 +32,14 @@ import { Loader2, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const settingsSchema = z.object({
-  itemChargeTier1: z.coerce.number().min(0, "Must be a positive number."),
-  itemChargeTier2: z.coerce.number().min(0, "Must be a positive number."),
-  itemChargeTier3: z.coerce.number().min(0, "Must be a positive number."),
-  itemChargeTier4: z.coerce.number().min(0, "Must be a positive number."),
+  itemDeliveryCharge: z.coerce.number().min(0, "Must be a positive number."),
   minItemOrderForFreeDelivery: z.coerce.number().min(0, "Must be a positive number."),
   minXeroxOrderPrice: z.coerce.number().min(0, "Must be a positive number."),
   xeroxDeliveryCharge: z.coerce.number().min(0, "Must be a positive number."),
 });
 
 const defaultSettings = {
-  itemChargeTier1: 0,
-  itemChargeTier2: 0,
-  itemChargeTier3: 0,
-  itemChargeTier4: 0,
+  itemDeliveryCharge: 0,
   minItemOrderForFreeDelivery: 0,
   minXeroxOrderPrice: 0,
   xeroxDeliveryCharge: 0,
@@ -150,69 +144,37 @@ export default function OrderSettingsPage() {
         >
           <Card>
             <CardHeader>
-              <CardTitle>Item Delivery Charges (per item)</CardTitle>
+              <CardTitle>Item Delivery Charges</CardTitle>
               <CardDescription>
-                Set the delivery fee per item based on the total number of items in the order. This applies to Stationary, Books, and Electronic Kits.
+                Set the delivery fee for Stationary, Books, and Electronic Kits.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField
-                    control={form.control}
-                    name="itemChargeTier1"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>1-5 Items</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 10" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="itemChargeTier2"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>6-10 Items</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 8" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="itemChargeTier3"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>11-15 Items</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 5" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="itemChargeTier4"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>16+ Items</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 2" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
                <FormField
                 control={form.control}
                 name="minItemOrderForFreeDelivery"
                 render={({ field }) => (
-                  <FormItem className="pt-4">
-                    <FormLabel>Minimum Total Order for FREE Delivery</FormLabel>
+                  <FormItem>
+                    <FormLabel>Minimum Total for FREE Delivery</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="e.g., 500" {...field} />
                     </FormControl>
                     <FormDescription>
-                      If the total cart value exceeds this amount, all item delivery fees are waived.
+                      If the cart value for items exceeds this, delivery is free.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="itemDeliveryCharge"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Delivery Charge</FormLabel>
+                    <FormControl><Input type="number" placeholder="e.g., 40" {...field} /></FormControl>
+                    <FormDescription>
+                      This flat fee is applied if the minimum for free delivery is not met.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -251,6 +213,9 @@ export default function OrderSettingsPage() {
                     <FormControl>
                       <Input type="number" placeholder="e.g., 25" {...field} />
                     </FormControl>
+                     <FormDescription>
+                      This flat fee is applied if the minimum for free delivery is not met.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
