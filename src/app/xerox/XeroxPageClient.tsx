@@ -549,19 +549,12 @@ export default function XeroxPageClient() {
         });
         setUploadStatus(initialStatuses);
         
-        const uploadPromises = documents.map(doc => uploadSingleDocument(doc));
-
         try {
-            await Promise.all(uploadPromises);
-            handleProceedToCheckout(); // All successful, redirect immediately
+            await Promise.all(documents.map(doc => uploadSingleDocument(doc)));
+            handleProceedToCheckout();
         } catch (error) {
+            // Error is handled in the dialog, no need to show another toast here.
             console.error("One or more uploads failed.", error);
-            toast({
-                variant: 'destructive',
-                title: "Upload Failed",
-                description: "One or more documents failed to upload. You can retry or proceed without them."
-            });
-            // Don't set isUploading to false, let the user decide next action in the dialog
         }
     };
 
@@ -573,6 +566,17 @@ export default function XeroxPageClient() {
                 console.error("Retry failed", err);
             });
         }
+    };
+    
+    const getOptionName = (type: 'paperType' | 'colorOption' | 'formatType' | 'printRatio' | 'bindingType' | 'laminationType', id: string): string => {
+        if (!id || id === 'none') return '';
+        if (type === 'paperType') return paperTypes.find(o => o.id === id)?.name || '';
+        if (type === 'colorOption') return HARDCODED_XEROX_OPTIONS.colorOptions.find(o => o.id === id)?.name || '';
+        if (type === 'formatType') return HARDCODED_XEROX_OPTIONS.formatTypes.find(o => o.id === id)?.name || '';
+        if (type === 'printRatio') return HARDCODED_XEROX_OPTIONS.printRatios.find(o => o.id === id)?.name || '';
+        if (type === 'bindingType') return allOptions.bindingTypes.find(o => o.id === id)?.name || '';
+        if (type === 'laminationType') return allOptions.laminationTypes.find(o => o.id === id)?.name || '';
+        return '';
     };
 
   
@@ -586,49 +590,50 @@ export default function XeroxPageClient() {
           <CardDescription>Please review the details for each document before proceeding.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-4">
-              {documents.map((doc, index) => {
-                  const priceInfo = documentPrices.find(p => p.id === doc.id);
-                  return (
-                      <div key={doc.id} className="border-b pb-3 mb-3">
-                          <div className="flex justify-between items-start text-sm">
-                              <p className="font-medium truncate pr-4">Doc {index + 1}: {doc.fileDetails?.name}</p>
-                              <p className="flex-shrink-0 font-semibold text-base">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</p>
-                          </div>
-                          <Table className="mt-1">
-                            <TableBody>
-                                <TableRow className="border-0">
-                                    <TableCell className="p-1 text-sm text-muted-foreground">Price per page</TableCell>
-                                    <TableCell className="p-1 text-right text-sm font-bold text-primary">Rs {(priceInfo?.pricePerPage || 0).toFixed(2)}</TableCell>
-                                </TableRow>
-                                {priceInfo && priceInfo.bindingCost > 0 && (
-                                    <TableRow className="border-0">
-                                        <TableCell className="p-1 text-sm text-muted-foreground">Binding Cost</TableCell>
-                                        <TableCell className="p-1 text-right text-sm font-bold text-primary">Rs {priceInfo.bindingCost.toFixed(2)}</TableCell>
-                                    </TableRow>
-                                )}
-                                {priceInfo && priceInfo.laminationCost > 0 && (
-                                    <TableRow className="border-0">
-                                        <TableCell className="p-1 text-sm text-muted-foreground">Lamination Cost</TableCell>
-                                        <TableCell className="p-1 text-right text-sm font-bold text-primary">Rs {priceInfo.laminationCost.toFixed(2)}</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                          </Table>
+           {documents.map((doc, index) => {
+              const priceInfo = documentPrices.find(p => p.id === doc.id);
+              const configDetails = [
+                  { label: 'Pages', value: doc.fileDetails?.pages || 'N/A' },
+                  { label: 'Paper', value: getOptionName('paperType', doc.selectedPaperType) },
+                  { label: 'Color', value: getOptionName('colorOption', doc.selectedColorOption) },
+                  { label: 'Format', value: getOptionName('formatType', doc.selectedFormatType) },
+                  { label: 'Ratio', value: getOptionName('printRatio', doc.selectedPrintRatio) },
+                  { label: 'Binding', value: getOptionName('bindingType', doc.selectedBindingType) },
+                  { label: 'Lamination', value: getOptionName('laminationType', doc.selectedLaminationType) },
+              ].filter(d => d.value && d.value !== 'N/A');
+
+              return (
+                  <div key={doc.id} className="border-b pb-3 mb-3">
+                      <div className="flex justify-between items-start text-sm">
+                          <p className="font-medium truncate pr-4">Doc {index + 1}: {doc.fileDetails?.name}</p>
+                          <p className="flex-shrink-0 font-semibold text-base">Rs {(priceInfo?.finalPrice || 0).toFixed(2)}</p>
                       </div>
-                  )
-              })}
-          </div>
+                      <Table className="mt-2">
+                        <TableBody>
+                            {configDetails.map(detail => (
+                                <TableRow key={detail.label} className="border-0">
+                                    <TableCell className="p-1 text-xs text-muted-foreground w-[100px]">{detail.label}</TableCell>
+                                    <TableCell className="p-1 text-xs font-medium">{detail.value}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                  </div>
+              )
+          })}
           
-           {deliveryCharge > 0 && (
-            <>
-              <Separator />
-              <div className="flex justify-between font-medium">
-                  <span>Delivery</span>
-                  <span>Rs {deliveryCharge.toFixed(2)}</span>
-              </div>
-            </>
-           )}
+           <div className="space-y-2 text-sm">
+             <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>Rs {subtotal.toFixed(2)}</span>
+             </div>
+             {deliveryCharge > 0 && (
+                <div className="flex justify-between text-destructive">
+                    <span>Delivery</span>
+                    <span>Rs {deliveryCharge.toFixed(2)}</span>
+                </div>
+             )}
+           </div>
 
           <Separator />
           <div className="flex justify-between font-bold text-lg">
@@ -855,7 +860,7 @@ export default function XeroxPageClient() {
                                         <RefreshCw className="mr-2 h-4 w-4"/> Retry
                                     </Button>
                                     <Button size="sm" onClick={() => handleProceedToCheckout()}>
-                                        OK
+                                        Proceed Anyway
                                     </Button>
                                   </div>
                                 </>
@@ -865,7 +870,7 @@ export default function XeroxPageClient() {
                 })}
             </div>
              <DialogFooter>
-                <Button variant="outline" onClick={handleProceedToCheckout}>
+                <Button variant="outline" onClick={() => handleProceedToCheckout()} disabled={Object.values(uploadStatus).some(s => s.status !== 'success' && s.status !== 'error')}>
                     Proceed to Checkout
                 </Button>
             </DialogFooter>
