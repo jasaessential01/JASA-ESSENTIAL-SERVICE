@@ -128,15 +128,15 @@ export default function OrdersPage() {
                     return (
                         <Card key={groupId}>
                             <CardHeader>
-                                <CardTitle>Ordered on {format(firstOrder.createdAt.toDate(), 'PPP, p')}</CardTitle>
+                                <CardTitle className="break-words">Ordered on {format(firstOrder.createdAt.toDate(), 'PPP, p')}</CardTitle>
                                 <CardDescription>Group ID: {groupId}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-2 text-sm">
                                     {group.orders.map(order => (
-                                        <div key={order.id} className="flex justify-between">
-                                            <p className="truncate pr-4">{order.productName}</p>
-                                            <p>x{order.quantity}</p>
+                                        <div key={order.id} className="flex justify-between items-start gap-4">
+                                            <p className="flex-grow truncate">{order.productName}</p>
+                                            <p className="flex-shrink-0">x{order.quantity}</p>
                                         </div>
                                     ))}
                                 </div>
