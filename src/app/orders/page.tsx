@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { format } from 'date-fns';
 import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
+
 
 type GroupedOrders = {
     [groupId: string]: {
@@ -126,8 +128,8 @@ export default function OrdersPage() {
 
                     return (
                         <Card key={groupId} className="flex flex-col">
-                            <CardHeader>
-                                <CardTitle className="text-lg leading-tight">
+                           <CardHeader>
+                                <CardTitle className="text-lg">
                                     Ordered on <span className="block sm:inline">{format(firstOrder.createdAt.toDate(), 'PPP, p')}</span>
                                 </CardTitle>
                                 <CardDescription className="break-all">
@@ -139,38 +141,60 @@ export default function OrdersPage() {
                                     <CardHeader className="p-4">
                                         <CardTitle className="text-base">Items Ordered ({group.orders.length})</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="p-4 pt-0 text-sm space-y-2">
-                                        {group.orders.map(order => (
-                                            <div key={order.id} className="flex justify-between items-start gap-2">
-                                                <p className="truncate font-medium">{order.productName}</p>
-                                                <p className="flex-shrink-0">x{order.quantity}</p>
-                                            </div>
-                                        ))}
+                                    <CardContent className="p-4 pt-0 text-sm">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Item</TableHead>
+                                                    <TableHead className="text-right">Qty</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {group.orders.map(order => (
+                                                    <TableRow key={order.id}>
+                                                        <TableCell className="font-medium">
+                                                            {order.productName.split(' ').slice(0, 2).join(' ')}{order.productName.split(' ').length > 2 ? '...' : ''}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">{order.quantity}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </CardContent>
                                 </Card>
                                 
-                                <Card className="bg-muted/50">
-                                     <CardHeader className="p-4">
-                                        <CardTitle className="text-base">Summary</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-4 pt-0 text-sm space-y-2">
-                                        <div className="flex justify-between"><p>Subtotal:</p> <p className="font-medium">Rs {subtotal.toFixed(2)}</p></div>
-                                        <div className="flex justify-between"><p>Delivery:</p> <p className="font-medium">Rs {totalDelivery.toFixed(2)}</p></div>
-                                        <Separator className="my-2" />
-                                        <div className="flex justify-between font-bold text-base"><p>Total:</p> <p>Rs {total.toFixed(2)}</p></div>
-                                        
-                                        {shop && (
-                                            <>
-                                                <Separator className="my-2" />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <Card className="bg-muted/50">
+                                      <CardHeader className="p-4">
+                                          <CardTitle className="text-base">Price Details</CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="p-4 pt-0 text-sm space-y-2">
+                                          <div className="flex justify-between"><p>Subtotal:</p> <p className="font-medium">Rs {subtotal.toFixed(2)}</p></div>
+                                          <div className="flex justify-between"><p>Delivery:</p> <p className="font-medium">Rs {totalDelivery.toFixed(2)}</p></div>
+                                          <Separator className="my-2" />
+                                          <div className="flex justify-between font-bold text-base"><p>Total:</p> <p>Rs {total.toFixed(2)}</p></div>
+                                      </CardContent>
+                                  </Card>
+
+                                  <Card className="bg-muted/50">
+                                      <CardHeader className="p-4">
+                                          <CardTitle className="text-base">Seller Information</CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="p-4 pt-0 text-sm space-y-2">
+                                          {shop ? (
+                                              <>
                                                 <p className="font-medium">{shop.name}</p>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 min-w-0">
                                                     <Phone className="h-4 w-4 flex-shrink-0" />
                                                     <span className="truncate text-muted-foreground">{shop.mobileNumbers?.join(', ')}</span>
                                                 </div>
-                                            </>
-                                        )}
-                                    </CardContent>
-                                </Card>
+                                              </>
+                                          ) : (
+                                              <p className="text-muted-foreground">Seller information not available.</p>
+                                          )}
+                                      </CardContent>
+                                  </Card>
+                                </div>
                             </CardContent>
                             <CardFooter>
                                 <Button asChild className="w-full">
