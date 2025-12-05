@@ -229,63 +229,6 @@ export default function Home() {
 
   return (
     <div className="w-full">
-       <div className="container mx-auto px-4 py-4">
-         <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-           <PopoverAnchor asChild>
-            <div className="relative w-full">
-                <Input
-                  type="text"
-                  placeholder="Search your product"
-                  className="h-12 rounded-full border-primary pl-12 pr-10 text-base"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                   <Image src="/favicon.ico" alt="Jasa Essentials" width={32} height={32} className="rounded-full border-2 border-primary" />
-                </span>
-                 <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute inset-y-0 right-2 flex items-center h-8 w-8 my-auto rounded-full text-muted-foreground"
-                    onClick={isSearchOpen ? handleClearSearch : undefined}
-                >
-                  {isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
-                </Button>
-            </div>
-           </PopoverAnchor>
-           <PopoverContent className="w-[--radix-popover-trigger-width] p-2">
-            <div className="max-h-60 overflow-y-auto">
-              {searchResults.length > 0 ? (
-                searchResults.map(product => (
-                  <Button
-                    key={product.id}
-                    variant="ghost"
-                    className="w-full justify-between h-auto p-2"
-                    onClick={() => handleProductClick(product.id)}
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <div className="relative h-10 w-10 flex-shrink-0 bg-muted rounded-md overflow-hidden">
-                        {product.imageNames?.[0] ? (
-                          <Image src={product.imageNames[0]} alt={product.name} fill className="object-cover" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-muted text-xs text-muted-foreground">JASA</div>
-                        )}
-                      </div>
-                      <span className="truncate text-left text-sm">{product.name}</span>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                  </Button>
-                ))
-              ) : (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  No products found.
-                </div>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
-        <LocationSelector />
-      </div>
       <div className="overflow-hidden">
          <Carousel
           setApi={setEmblaApi}
@@ -371,6 +314,64 @@ export default function Home() {
                 })}
             </div>
         )}
+      </div>
+
+       <div className="container mx-auto px-4 py-4 mt-4">
+         <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+           <PopoverAnchor asChild>
+            <div className="relative w-full">
+                <Input
+                  type="text"
+                  placeholder="Search your product"
+                  className="h-12 rounded-full border-primary pl-12 pr-10 text-base"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                   <Image src="/favicon.ico" alt="Jasa Essentials" width={32} height={32} className="rounded-full border-2 border-primary" />
+                </span>
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-2 flex items-center h-8 w-8 my-auto rounded-full text-muted-foreground"
+                    onClick={isSearchOpen ? handleClearSearch : undefined}
+                >
+                  {isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+                </Button>
+            </div>
+           </PopoverAnchor>
+           <PopoverContent className="w-[--radix-popover-trigger-width] p-2">
+            <div className="max-h-60 overflow-y-auto">
+              {searchResults.length > 0 ? (
+                searchResults.map(product => (
+                  <Button
+                    key={product.id}
+                    variant="ghost"
+                    className="w-full justify-between h-auto p-2"
+                    onClick={() => handleProductClick(product.id)}
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="relative h-10 w-10 flex-shrink-0 bg-muted rounded-md overflow-hidden">
+                        {product.imageNames?.[0] ? (
+                          <Image src={product.imageNames[0]} alt={product.name} fill className="object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-muted text-xs text-muted-foreground">JASA</div>
+                        )}
+                      </div>
+                      <span className="truncate text-left text-sm">{product.name}</span>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  </Button>
+                ))
+              ) : (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  No products found.
+                </div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+        <LocationSelector />
       </div>
        
        <div className="py-8">
