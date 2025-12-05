@@ -727,7 +727,7 @@ export default function XeroxPageClient() {
   const PriceListDialog = () => (
     <Dialog>
         <DialogTrigger asChild>
-            <Button className="bg-[#4169E1] hover:bg-[#4169E1]/90 transition-transform active:scale-95"><ListOrdered className="mr-2 h-4 w-4"/> View Price List</Button>
+            <Button className="bg-gradient-to-r from-blue-500 to-sky-400 text-white hover:opacity-90 transition-transform active:scale-95"><ListOrdered className="mr-2 h-4 w-4"/> View Price List</Button>
         </DialogTrigger>
         <DialogContent className="max-h-[80vh] flex flex-col">
             <DialogHeader>
@@ -797,7 +797,7 @@ export default function XeroxPageClient() {
   const PaperSamplesDialog = () => (
     <Dialog>
         <DialogTrigger asChild>
-            <Button className="bg-[#4169E1] hover:bg-[#4169E1]/90 transition-transform active:scale-95"><Images className="mr-2 h-4 w-4"/> View Formats</Button>
+            <Button className="bg-gradient-to-r from-blue-500 to-sky-400 text-white hover:opacity-90 transition-transform active:scale-95"><Images className="mr-2 h-4 w-4"/> View Formats</Button>
         </DialogTrigger>
         <DialogContent className="max-h-[80vh] flex flex-col">
             <DialogHeader>
