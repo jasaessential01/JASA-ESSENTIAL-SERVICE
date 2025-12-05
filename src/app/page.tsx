@@ -229,7 +229,10 @@ export default function Home() {
 
   return (
     <div className="w-full">
-      <div className="overflow-hidden">
+      <div className="container mx-auto px-4 pt-4">
+        <LocationSelector />
+      </div>
+      <div className="overflow-hidden pt-4">
          <Carousel
           setApi={setEmblaApi}
           plugins={[plugin.current]}
@@ -371,7 +374,6 @@ export default function Home() {
             </div>
           </PopoverContent>
         </Popover>
-        <LocationSelector />
       </div>
        
        <div className="py-8">
