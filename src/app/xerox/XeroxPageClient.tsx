@@ -625,8 +625,6 @@ export default function XeroxPageClient() {
                 { key: 'Color', value: getOptionName('colorOption', doc.selectedColorOption) },
                 { key: 'Format', value: getOptionName('formatType', doc.selectedFormatType) },
                 { key: 'Ratio', value: getOptionName('printRatio', doc.selectedPrintRatio) },
-                { key: 'Binding', value: getOptionName('bindingType', doc.selectedBindingType) },
-                { key: 'Lamination', value: getOptionName('laminationType', doc.selectedLaminationType) },
               ].filter(d => d.value);
 
               return (
@@ -659,18 +657,30 @@ export default function XeroxPageClient() {
                     </Table>
 
                     <div className="p-2 border rounded-md bg-background/50">
-                      <Table>
-                          <TableBody>
-                              <TableRow className="border-0">
-                                  <TableCell className="p-1 text-lg text-muted-foreground">Price per page</TableCell>
-                                  <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {(priceInfo?.pricePerPage || 0).toFixed(2)}</TableCell>
-                              </TableRow>
-                              <TableRow className="border-0">
-                                  <TableCell className="p-1 text-lg text-muted-foreground">Final Price</TableCell>
-                                  <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {((priceInfo?.finalPrice || 0) + deliveryFeePerDoc).toFixed(2)}</TableCell>
-                              </TableRow>
-                          </TableBody>
-                      </Table>
+                        <Table>
+                            <TableBody>
+                                <TableRow className="border-0">
+                                    <TableCell className="p-1 text-lg text-muted-foreground">Price per page</TableCell>
+                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {(priceInfo?.pricePerPage || 0).toFixed(2)}</TableCell>
+                                </TableRow>
+                                {priceInfo && priceInfo.bindingCost > 0 && (
+                                    <TableRow className="border-0">
+                                        <TableCell className="p-1 text-lg text-muted-foreground">Binding Cost</TableCell>
+                                        <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {priceInfo.bindingCost.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                )}
+                                {priceInfo && priceInfo.laminationCost > 0 && (
+                                    <TableRow className="border-0">
+                                        <TableCell className="p-1 text-lg text-muted-foreground">Lamination Cost</TableCell>
+                                        <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {priceInfo.laminationCost.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                )}
+                                <TableRow className="border-0">
+                                    <TableCell className="p-1 text-lg text-muted-foreground">Final Price</TableCell>
+                                    <TableCell className="p-1 text-right text-lg font-bold text-primary">Rs {((priceInfo?.finalPrice || 0) + deliveryFeePerDoc).toFixed(2)}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
                     </div>
 
                     <div className="flex items-center space-x-2 pt-2 border-t">
@@ -1004,3 +1014,5 @@ export default function XeroxPageClient() {
     </>
   );
 }
+
+    
