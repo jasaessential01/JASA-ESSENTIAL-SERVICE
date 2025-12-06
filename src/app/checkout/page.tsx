@@ -257,7 +257,7 @@ export default function CheckoutPage() {
             productImage: data.url, // Storing drive URL here
             quantity: xeroxItem.quantity,
             price: xeroxItem.price,
-            deliveryCharge: xeroxDeliveryCharge / xeroxItems.length, // Distribute charge
+            deliveryCharge: xeroxDeliveryFee / xeroxItems.length, // Distribute charge
             sellerId: xeroxSellerId,
             shippingAddress: shippingAddress,
             mobile: mobileData.mobile,
@@ -638,3 +638,5 @@ export default function CheckoutPage() {
     </>
   );
 }
+
+    
