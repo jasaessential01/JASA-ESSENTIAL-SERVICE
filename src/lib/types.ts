@@ -204,6 +204,7 @@ export type Order = {
   returnReason?: string;
   returnType?: 'refund' | 'replacement';
   tracking: OrderTracking;
+  xeroxConfig?: XeroxDocument['config'];
   createdAt: any;
 };
 

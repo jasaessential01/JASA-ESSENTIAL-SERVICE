@@ -1,16 +1,17 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-provider";
-import { getOrdersByGroupId, cancelOrder } from "@/lib/data";
-import type { Order } from "@/lib/types";
+import { getOrdersByGroupId, cancelOrder, getXeroxOptions } from "@/lib/data";
+import type { Order, XeroxOption } from "@/lib/types";
+import { HARDCODED_XEROX_OPTIONS } from "@/lib/xerox-options";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, FileText, ShoppingCart, Package, XCircle } from "lucide-react";
+import { ArrowLeft, FileText, ShoppingCart, Package, XCircle, Link as LinkIcon, Info } from "lucide-react";
 import Image from "next/image";
 import OrderTracker from "@/components/order-tracker";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 
 export default function OrderGroupDetailPage() {
@@ -40,7 +42,11 @@ export default function OrderGroupDetailPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchOrders = async () => {
+  const [paperTypes, setPaperTypes] = useState<XeroxOption[]>([]);
+  const [bindingTypes, setBindingTypes] = useState<XeroxOption[]>([]);
+  const [laminationTypes, setLaminationTypes] = useState<XeroxOption[]>([]);
+
+  const fetchOrdersAndOptions = async () => {
       if (typeof groupId !== 'string') {
         toast({ variant: 'destructive', title: 'Error', description: 'Invalid Order Group ID.' });
         router.push('/orders');
@@ -48,13 +54,23 @@ export default function OrderGroupDetailPage() {
       }
       setIsLoading(true);
       try {
-        const fetchedOrders = await getOrdersByGroupId(groupId);
+        const [fetchedOrders, fetchedPaperTypes, fetchedBindingTypes, fetchedLaminationTypes] = await Promise.all([
+            getOrdersByGroupId(groupId),
+            getXeroxOptions('paperType'),
+            getXeroxOptions('bindingType'),
+            getXeroxOptions('laminationType'),
+        ]);
+
         if (fetchedOrders.length === 0 || fetchedOrders[0].userId !== user?.uid) {
             toast({ variant: 'destructive', title: 'Access Denied', description: 'You do not have permission to view these orders.' });
             router.push('/orders');
             return;
         }
         setOrders(fetchedOrders);
+        setPaperTypes(fetchedPaperTypes);
+        setBindingTypes(fetchedBindingTypes);
+        setLaminationTypes(fetchedLaminationTypes);
+
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: `Failed to fetch order details: ${error.message}` });
       } finally {
@@ -68,8 +84,25 @@ export default function OrderGroupDetailPage() {
       router.push("/login");
       return;
     }
-    fetchOrders();
+    fetchOrdersAndOptions();
   }, [groupId, user, authLoading, router, toast]);
+
+  const getOptionName = (type: 'paperType' | 'colorOption' | 'formatType' | 'printRatio' | 'bindingType' | 'laminationType', id: string): string => {
+      if (!id || id === 'none') return 'N/A';
+      if (type === 'paperType') return paperTypes.find(o => o.id === id)?.name || id;
+      if (type === 'bindingType') return bindingTypes.find(o => o.id === id)?.name || id;
+      if (type === 'laminationType') return laminationTypes.find(o => o.id === id)?.name || id;
+      if (type === 'colorOption') return HARDCODED_XEROX_OPTIONS.colorOptions.find(o => o.id === id)?.name || id;
+      if (type === 'formatType') return HARDCODED_XEROX_OPTIONS.formatTypes.find(o => o.id === id)?.name || id;
+      if (type === 'printRatio') return HARDCODED_XEROX_OPTIONS.printRatios.find(o => o.id === id)?.name || id;
+      return id;
+  };
+  
+  const getOptionPrice = (type: 'bindingType' | 'laminationType', id: string): number => {
+    if (type === 'bindingType') return bindingTypes.find(o => o.id === id)?.price || 0;
+    if (type === 'laminationType') return laminationTypes.find(o => o.id === id)?.price || 0;
+    return 0;
+  }
 
   const handleCancelOrder = async () => {
     if (!cancellingOrder || !cancelReason.trim()) {
@@ -82,7 +115,7 @@ export default function OrderGroupDetailPage() {
         toast({ title: 'Order Cancelled', description: 'Your order has been successfully cancelled.' });
         setCancellingOrder(null);
         setCancelReason("");
-        fetchOrders(); // Re-fetch orders to show updated status
+        fetchOrdersAndOptions(); // Re-fetch orders to show updated status
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Cancellation Failed', description: error.message });
     } finally {
@@ -142,7 +175,29 @@ export default function OrderGroupDetailPage() {
       <p className="text-sm text-muted-foreground mb-8">Group ID: {groupId}</p>
 
       <div className="space-y-6">
-        {orders.map(order => (
+        {orders.map(order => {
+          const isXerox = order.category === 'xerox';
+          const xeroxConfig = order.xeroxConfig;
+          
+          let bindingCost = 0;
+          let laminationCost = 0;
+          let details: { label: string; value: string | number }[] = [];
+
+          if (isXerox && xeroxConfig) {
+             bindingCost = getOptionPrice('bindingType', xeroxConfig.bindingType);
+             laminationCost = getOptionPrice('laminationType', xeroxConfig.laminationType);
+             details = [
+                { label: 'Paper', value: getOptionName('paperType', xeroxConfig.paperType) },
+                { label: 'Color', value: getOptionName('colorOption', xeroxConfig.colorOption) },
+                { label: 'Format', value: getOptionName('formatType', xeroxConfig.formatType) },
+                { label: 'Ratio', value: getOptionName('printRatio', xeroxConfig.printRatio) },
+                { label: 'Binding', value: getOptionName('bindingType', xeroxConfig.bindingType) },
+                { label: 'Lamination', value: getOptionName('laminationType', xeroxConfig.laminationType) },
+                { label: 'Instructions', value: xeroxConfig.message },
+             ].filter(d => d.value && d.value !== 'N/A');
+          }
+          
+          return (
           <Card key={order.id}>
             <CardHeader>
                 <div className="flex justify-between items-start">
@@ -150,15 +205,15 @@ export default function OrderGroupDetailPage() {
                         <CardTitle className="line-clamp-2">{order.productName}</CardTitle>
                         <CardDescription>Order ID: {order.id}</CardDescription>
                     </div>
-                     <Badge variant={order.status.includes('Delivered') ? 'default' : (order.status.includes('Cancelled') || order.status.includes('Rejected')) ? 'destructive' : 'secondary'}>
+                     <Badge variant={order.status.includes('Cancelled') || order.status.includes('Rejected') ? 'destructive' : 'secondary'}>
                         {order.status === 'Cancelled' ? 'Cancelled by You' : order.status}
                      </Badge>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
                 <div className="flex items-start gap-4">
                      <div className="relative h-24 w-24 flex-shrink-0 bg-muted rounded-md overflow-hidden flex items-center justify-center">
-                        {order.category === 'xerox' ? (
+                        {isXerox ? (
                             <FileText className="h-12 w-12 text-blue-500" />
                         ) : order.productImage ? (
                             <Image src={order.productImage} alt={order.productName} fill className="object-cover" />
@@ -170,8 +225,66 @@ export default function OrderGroupDetailPage() {
                         <p><span className="font-medium">Quantity:</span> {order.quantity}</p>
                         <p><span className="font-medium">Price per item:</span> Rs {order.price.toFixed(2)}</p>
                         <p><span className="font-medium">Total:</span> Rs {(order.price * order.quantity).toFixed(2)}</p>
+                        {isXerox && order.productImage && (
+                          <Button variant="link" asChild className="p-0 h-auto">
+                              <a href={order.productImage} target="_blank" rel="noopener noreferrer">
+                                <LinkIcon className="mr-2 h-4 w-4"/> View Uploaded Document
+                              </a>
+                          </Button>
+                        )}
                     </div>
                 </div>
+
+                {isXerox && xeroxConfig && (
+                  <Card className="bg-muted/50">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Printing & Finishing Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                        <div className="space-y-2">
+                           <h4 className="font-semibold text-sm">Configuration</h4>
+                           <Table>
+                              <TableBody>
+                                {details.map(detail => (
+                                  <TableRow key={detail.label} className="border-0">
+                                    <TableCell className="p-1 text-xs text-muted-foreground">{detail.label}</TableCell>
+                                    <TableCell className="p-1 text-xs font-medium">{detail.value}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                        </div>
+                         <div className="space-y-2">
+                           <h4 className="font-semibold text-sm">Price Estimation</h4>
+                           <Table>
+                              <TableBody>
+                                {bindingCost > 0 && (
+                                  <TableRow className="border-0">
+                                    <TableCell className="p-1 text-xs text-muted-foreground">Binding Cost</TableCell>
+                                    <TableCell className="p-1 text-xs font-medium text-right">Rs {bindingCost.toFixed(2)}</TableCell>
+                                  </TableRow>
+                                )}
+                                {laminationCost > 0 && (
+                                  <TableRow className="border-0">
+                                    <TableCell className="p-1 text-xs text-muted-foreground">Lamination Cost</TableCell>
+                                    <TableCell className="p-1 text-xs font-medium text-right">Rs {laminationCost.toFixed(2)}</TableCell>
+                                  </TableRow>
+                                )}
+                                 <TableRow className="border-0">
+                                    <TableCell className="p-1 text-xs text-muted-foreground">Printing Cost</TableCell>
+                                    <TableCell className="p-1 text-xs font-medium text-right">Rs {(order.price - bindingCost - laminationCost).toFixed(2)}</TableCell>
+                                  </TableRow>
+                                <TableRow className="border-t">
+                                    <TableCell className="p-1 font-bold text-sm">Total per Item</TableCell>
+                                    <TableCell className="p-1 font-bold text-sm text-right">Rs {order.price.toFixed(2)}</TableCell>
+                                  </TableRow>
+                              </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="mt-4">
                     <OrderTracker trackingInfo={order.tracking} />
                 </div>
@@ -185,7 +298,7 @@ export default function OrderGroupDetailPage() {
                 </CardFooter>
             )}
           </Card>
-        ))}
+        ))})}
       </div>
     </div>
     </>
