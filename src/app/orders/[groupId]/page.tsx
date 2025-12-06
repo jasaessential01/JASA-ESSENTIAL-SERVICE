@@ -96,7 +96,7 @@ export default function OrderGroupDetailPage() {
       return;
     }
     fetchOrdersAndOptions();
-  }, [groupId, user, authLoading, router, toast, fetchOrdersAndOptions]);
+  }, [groupId, user, authLoading]);
 
   const getPageCount = async (file: File): Promise<number | undefined> => {
       try {
