@@ -320,15 +320,18 @@ export default function OrderGroupDetailPage() {
                             <p><span className="font-medium">Price per item:</span> Rs {order.price.toFixed(2)}</p>
                             <p><span className="font-medium">Total:</span> Rs {(order.price * order.quantity).toFixed(2)}</p>
                         </div>
-                        {isXerox && (
-                          <div className="pt-2">
-                          {order.productImage ? (
-                            <Button variant="outline" asChild className="w-full sm:w-auto">
-                                <a href={order.productImage} target="_blank" rel="noopener noreferrer">
-                                  <LinkIcon className="mr-2 h-4 w-4"/> View Uploaded Document
-                                </a>
-                            </Button>
-                          ) : (
+                    </div>
+                </div>
+                 {isXerox && (
+                    <div className="pt-2">
+                        {order.productImage ? (
+                        <Button variant="outline" asChild className="w-full sm:w-auto">
+                            <a href={order.productImage} target="_blank" rel="noopener noreferrer">
+                            <LinkIcon className="mr-2 h-4 w-4"/> View Uploaded Document
+                            </a>
+                        </Button>
+                        ) : (
+                        <div className="space-y-2">
                              <Button 
                                 variant="secondary" 
                                 className="w-full sm:w-auto"
@@ -345,11 +348,14 @@ export default function OrderGroupDetailPage() {
                                 )}
                                 Upload Document
                              </Button>
-                          )}
-                          </div>
-                        )}
+                             <p className="text-xs text-muted-foreground">
+                                Please upload the original file. Expected pages: {order.xeroxConfig?.pageCount || 'N/A'}
+                             </p>
+                        </div>
+                      )}
                     </div>
-                </div>
+                )}
+
 
                 {isXerox && xeroxConfig && (
                   <Card className="bg-muted/50">
@@ -420,5 +426,3 @@ export default function OrderGroupDetailPage() {
     </>
   );
 }
-
-
