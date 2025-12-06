@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Link from 'next/link';
@@ -24,27 +23,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle, Store, Info, MapPin, ArrowLeft, Loader2, CheckCircle, FileText, Trash2, Link as LinkIcon } from 'lucide-react';
-import type { UserProfile, Shop, OrderSettings, ShopService, XeroxOption, Address } from '@/lib/types';
+import type { UserProfile, Shop, OrderSettings, ShopService, XeroxOption, Address, StoredXeroxJob } from '@/lib/types';
 import { HARDCODED_XEROX_OPTIONS } from '@/lib/xerox-options';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { v4 as uuidv4 } from 'uuid';
-
-type StoredXeroxJob = {
-    id: string;
-    fileDetails: { name: string; type: string; url: string; };
-    pageCount: number;
-    price: number;
-    config: {
-        paperType: string;
-        colorOption: string;
-        formatType: string;
-        printRatio: string;
-        bindingType: string;
-        laminationType: string;
-        quantity: number;
-        message: string;
-    };
-};
 
 const addressSchema = z.object({
   type: z.enum(['Home', 'Work']),
@@ -169,7 +151,7 @@ export default function XeroxCheckoutPage() {
     const basePricePerPage = colorOption?.name === 'Gradient / Colour' ? paperType.priceColor ?? 0 : paperType.priceBw ?? 0;
     const pricePerPage = printRatio?.name === '1:2 (Two pages per sheet)' ? basePricePerPage / 2 : basePricePerPage;
 
-    const documentPages = job.pageCount;
+    const documentPages = job.config.pageCount;
     const physicalPages = formatType?.name === 'Front and Back' ? Math.ceil(documentPages / 2) : documentPages;
     const printingCost = physicalPages * pricePerPage;
 
@@ -229,13 +211,14 @@ export default function XeroxCheckoutPage() {
 
     const groupId = uuidv4();
     const orderPromises = xeroxJobs.map(job => {
+        const { finalPrice } = calculatePriceDetails(job);
         return createOrder({
             groupId,
             userId: user.uid,
             productName: job.fileDetails.name,
             productImage: job.fileDetails.url,
             quantity: job.config.quantity,
-            price: job.price,
+            price: finalPrice / job.config.quantity, // price per single unit
             deliveryCharge: xeroxDeliveryFee / xeroxJobs.length,
             sellerId: values.selectedShop,
             shippingAddress: shippingAddress,
@@ -334,7 +317,7 @@ export default function XeroxCheckoutPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Primary Mobile Number</FormLabel>
-                    <FormControl><Input {...field} type="tel" placeholder="10-digit mobile number" prefix="+91" /></FormControl>
+                    <FormControl><Input {...field} type="tel" placeholder="10-digit mobile number" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -346,7 +329,7 @@ export default function XeroxCheckoutPage() {
                     name={`altMobiles.${index}.value`}
                     render={({ field }) => (
                     <FormItem className="flex items-center gap-2">
-                        <FormControl><Input {...field} value={field.value || ''} type="tel" placeholder={`Alt. Mobile ${index + 1}`} prefix="+91" /></FormControl>
+                        <FormControl><Input {...field} value={field.value || ''} type="tel" placeholder={`Alt. Mobile ${index + 1}`} /></FormControl>
                         <Button type="button" variant="ghost" size="icon" onClick={() => removeAltMobile(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </FormItem>
                     )}
@@ -470,6 +453,8 @@ export default function XeroxCheckoutPage() {
                          <Table className="mt-2 text-sm">
                             <TableBody>
                                 {Object.entries({
+                                    'Pages': job.config.pageCount,
+                                    'Quantity': job.config.quantity,
                                     'Paper': getOptionName('paperType', job.config.paperType),
                                     'Color': getOptionName('colorOption', job.config.colorOption),
                                     'Format': getOptionName('formatType', job.config.formatType),

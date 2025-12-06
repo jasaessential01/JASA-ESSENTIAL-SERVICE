@@ -1,10 +1,9 @@
 
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { getXeroxServices, getXeroxOptions, getPaperSamples, getOrderSettings } from "@/lib/data";
-import type { XeroxService, XeroxOption, PaperSample, OrderSettings, XeroxDocument as StoredXeroxJob } from "@/lib/types";
+import type { XeroxService, XeroxOption, PaperSample, OrderSettings, XeroxDocument as StoredXeroxJob, StoredXeroxJob as _StoredXeroxJob } from "@/lib/types";
 import { HARDCODED_XEROX_OPTIONS } from "@/lib/xerox-options";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -535,7 +534,7 @@ export default function XeroxPageClient() {
     };
     
     const handleProceedToCheckout = () => {
-        const jobsForStorage: StoredXeroxJob[] = documents.map((doc, index) => {
+        const jobsForStorage: _StoredXeroxJob[] = documents.map((doc) => {
             const priceInfo = documentPrices.find(p => p.id === doc.id);
             return {
                 id: `${Date.now()}-${doc.id}`,
@@ -544,6 +543,7 @@ export default function XeroxPageClient() {
                     type: doc.fileDetails!.type,
                     url: uploadStatus[doc.id]?.url || '',
                 },
+                pageCount: doc.fileDetails!.pages || 0,
                 price: priceInfo ? priceInfo.finalPrice / doc.quantity : 0,
                 config: {
                     paperType: doc.selectedPaperType,

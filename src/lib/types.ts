@@ -1,5 +1,4 @@
 
-
 export type Product = {
   id: string;
   name: string;
@@ -55,6 +54,24 @@ export type DBCartItem = {
     xeroxConfig: XeroxDocument['config'] | null;
     xeroxFile: { name: string; type: string; pageCount: number } | null;
 }
+
+export type StoredXeroxJob = {
+    id: string;
+    fileDetails: { name: string; type: string; url: string; };
+    pageCount: number; // This was missing
+    price: number;
+    config: {
+        paperType: string;
+        colorOption: string;
+        formatType: string;
+        pageCount: number;
+        printRatio: string;
+        bindingType: string;
+        laminationType: string;
+        quantity: number;
+        message: string;
+    };
+};
 
 
 export type Category = {
