@@ -353,6 +353,7 @@ export default function ManageShopOrdersPage() {
                            { label: 'Paper', value: getOptionName('paperType', xeroxConfig.paperType) },
                            { label: 'Color', value: getOptionName('colorOption', xeroxConfig.colorOption) },
                            { label: 'Format', value: getOptionName('formatType', xeroxConfig.formatType) },
+                           { label: 'Pages', value: xeroxConfig.pageCount },
                            { label: 'Ratio', value: getOptionName('printRatio', xeroxConfig.printRatio) },
                            { label: 'Binding', value: getOptionName('bindingType', xeroxConfig.bindingType) },
                            { label: 'Lamination', value: getOptionName('laminationType', xeroxConfig.laminationType) },
@@ -572,3 +573,4 @@ export default function ManageShopOrdersPage() {
     </>
   );
 }
+

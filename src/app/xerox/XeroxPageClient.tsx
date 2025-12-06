@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
@@ -543,12 +544,12 @@ export default function XeroxPageClient() {
                     type: doc.fileDetails!.type,
                     url: uploadStatus[doc.id]?.url || '',
                 },
-                pageCount: doc.fileDetails!.pages || 0,
                 price: priceInfo ? priceInfo.finalPrice / doc.quantity : 0,
                 config: {
                     paperType: doc.selectedPaperType,
                     colorOption: doc.selectedColorOption,
                     formatType: doc.selectedFormatType,
+                    pageCount: doc.fileDetails!.pages || 0,
                     printRatio: doc.selectedPrintRatio,
                     bindingType: doc.selectedBindingType,
                     laminationType: doc.selectedLaminationType,

@@ -1,4 +1,5 @@
 
+
 export type Product = {
   id: string;
   name: string;
@@ -23,6 +24,7 @@ export type XeroxDocument = {
         paperType: string;
         colorOption: string;
         formatType: string;
+        pageCount: number;
         printRatio: string;
         bindingType: string;
         laminationType: string;
