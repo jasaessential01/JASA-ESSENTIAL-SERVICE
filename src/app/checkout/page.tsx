@@ -264,6 +264,7 @@ export default function CheckoutPage() {
             altMobiles: mobileData.altMobiles?.filter(m => m.value),
             status: 'Pending Confirmation',
             category: 'xerox',
+            xeroxConfig: xeroxItem.xerox.config, // Save the configuration
           }));
         } catch (uploadError: any) {
           toast({ variant: "destructive", title: 'Upload Failed', description: `Could not upload ${xeroxItem.xerox.file.name}. Order cancelled.` });
