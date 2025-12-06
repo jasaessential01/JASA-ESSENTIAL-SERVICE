@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-provider";
 import { getOrdersByGroupId, cancelOrder, getXeroxOptions, updateOrderWithDocumentUrl } from "@/lib/data";
@@ -57,7 +57,7 @@ export default function OrderGroupDetailPage() {
   const [bindingTypes, setBindingTypes] = useState<XeroxOption[]>([]);
   const [laminationTypes, setLaminationTypes] = useState<XeroxOption[]>([]);
 
-  const fetchOrdersAndOptions = async () => {
+  const fetchOrdersAndOptions = useCallback(async () => {
       if (typeof groupId !== 'string') {
         toast({ variant: 'destructive', title: 'Error', description: 'Invalid Order Group ID.' });
         router.push('/orders');
@@ -72,7 +72,7 @@ export default function OrderGroupDetailPage() {
             getXeroxOptions('laminationType'),
         ]);
 
-        if (fetchedOrders.length === 0 || fetchedOrders[0].userId !== user?.uid) {
+        if (fetchedOrders.length > 0 && fetchedOrders[0].userId !== user?.uid) {
             toast({ variant: 'destructive', title: 'Access Denied', description: 'You do not have permission to view these orders.' });
             router.push('/orders');
             return;
@@ -87,7 +87,7 @@ export default function OrderGroupDetailPage() {
       } finally {
         setIsLoading(false);
       }
-    };
+    }, [groupId, user?.uid, toast, router]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -96,7 +96,7 @@ export default function OrderGroupDetailPage() {
       return;
     }
     fetchOrdersAndOptions();
-  }, [groupId, user, authLoading, router, toast]);
+  }, [groupId, user, authLoading, router, toast, fetchOrdersAndOptions]);
 
   const getPageCount = async (file: File): Promise<number | undefined> => {
       try {
@@ -320,7 +320,8 @@ export default function OrderGroupDetailPage() {
                             <p><span className="font-medium">Total:</span> Rs {(order.price * order.quantity).toFixed(2)}</p>
                         </div>
                         {isXerox && (
-                          order.productImage ? (
+                          <div className="pt-2">
+                          {order.productImage ? (
                             <Button variant="outline" asChild className="w-full sm:w-auto">
                                 <a href={order.productImage} target="_blank" rel="noopener noreferrer">
                                   <LinkIcon className="mr-2 h-4 w-4"/> View Uploaded Document
@@ -343,7 +344,8 @@ export default function OrderGroupDetailPage() {
                                 )}
                                 Upload Document
                              </Button>
-                          )
+                          )}
+                          </div>
                         )}
                     </div>
                 </div>
@@ -417,3 +419,4 @@ export default function OrderGroupDetailPage() {
     </>
   );
 }
+
