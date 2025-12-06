@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from 'next/link';
@@ -446,6 +447,49 @@ export default function XeroxCheckoutPage() {
             <Link href="/xerox"><ArrowLeft className="mr-2 h-4 w-4" />Back to Xerox</Link>
           </Button>
         </div>
+        
+        <Card className="mt-8">
+            <CardHeader>
+                <CardTitle className="font-headline">Your Documents</CardTitle>
+                <CardDescription>Review your uploaded documents and their configurations.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {xeroxJobs.map(job => (
+                    <div key={job.id} className="border p-4 rounded-lg">
+                        <div className="flex justify-between items-start">
+                            <div className="font-semibold flex items-center gap-2">
+                                <FileText className="h-5 w-5" />
+                                <span className="truncate">{job.fileDetails.name}</span>
+                            </div>
+                            <Button asChild variant="link" size="sm" className="p-0 h-auto">
+                                <a href={job.fileDetails.url} target="_blank" rel="noopener noreferrer">
+                                    <LinkIcon className="h-4 w-4 mr-1"/> View Document
+                                </a>
+                            </Button>
+                        </div>
+                         <Table className="mt-2 text-sm">
+                            <TableBody>
+                                {Object.entries({
+                                    'Paper': getOptionName('paperType', job.config.paperType),
+                                    'Color': getOptionName('colorOption', job.config.colorOption),
+                                    'Format': getOptionName('formatType', job.config.formatType),
+                                    'Ratio': getOptionName('printRatio', job.config.printRatio),
+                                    'Binding': getOptionName('bindingType', job.config.bindingType),
+                                    'Lamination': getOptionName('laminationType', job.config.laminationType),
+                                    'Instructions': job.config.message
+                                }).filter(([_, value]) => value).map(([label, value]) => (
+                                    <TableRow key={label} className="border-0">
+                                        <TableCell className="p-1 w-28 text-muted-foreground">{label}</TableCell>
+                                        <TableCell className="p-1 font-medium">{value}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+
         <Form {...checkoutForm}>
           <form onSubmit={checkoutForm.handleSubmit(onCheckoutSubmit)} className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-8">
