@@ -1,4 +1,5 @@
 
+
 import type { Product, Category, Brand, Author, ProductType, HomepageContent, XeroxService, XeroxOption, XeroxOptionType, OrderSettings, Order, OrderStatus, Notification, PaperSample } from './types';
 import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, setDoc, writeBatch, runTransaction } from 'firebase/firestore';
@@ -673,6 +674,18 @@ export const cancelOrder = async (orderId: string, reason: string): Promise<void
             throw error; // Re-throw the specific error message
         }
         throw new Error("Failed to cancel order.");
+    }
+};
+
+export const updateOrderWithDocumentUrl = async (orderId: string, fileUrl: string): Promise<void> => {
+    try {
+        const orderDocRef = doc(db, 'orders', orderId);
+        await updateDoc(orderDocRef, {
+            productImage: fileUrl,
+        });
+    } catch (error) {
+        console.error("Error updating order with document URL:", error);
+        throw new Error("Failed to link document to the order.");
     }
 };
 

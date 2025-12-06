@@ -2,17 +2,17 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-provider";
-import { getOrdersByGroupId, cancelOrder, getXeroxOptions } from "@/lib/data";
+import { getOrdersByGroupId, cancelOrder, getXeroxOptions, updateOrderWithDocumentUrl } from "@/lib/data";
 import type { Order, XeroxOption } from "@/lib/types";
 import { HARDCODED_XEROX_OPTIONS } from "@/lib/xerox-options";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, FileText, ShoppingCart, Package, XCircle, Link as LinkIcon, Info } from "lucide-react";
+import { ArrowLeft, FileText, ShoppingCart, Package, XCircle, Link as LinkIcon, Info, UploadCloud, Loader2 } from "lucide-react";
 import Image from "next/image";
 import OrderTracker from "@/components/order-tracker";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import * as pdfjsLib from 'pdfjs-dist';
+import mammoth from 'mammoth';
 
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+}
 
 export default function OrderGroupDetailPage() {
   const { groupId } = useParams();
@@ -42,6 +48,10 @@ export default function OrderGroupDetailPage() {
   const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [uploadingFileForOrder, setUploadingFileForOrder] = useState<Order | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [paperTypes, setPaperTypes] = useState<XeroxOption[]>([]);
   const [bindingTypes, setBindingTypes] = useState<XeroxOption[]>([]);
@@ -87,6 +97,79 @@ export default function OrderGroupDetailPage() {
     }
     fetchOrdersAndOptions();
   }, [groupId, user, authLoading, router, toast]);
+
+  const getPageCount = async (file: File): Promise<number | undefined> => {
+      try {
+          const arrayBuffer = await file.arrayBuffer();
+          if (file.type === 'application/pdf') {
+              const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+              return pdf.numPages;
+          } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+              const result = await mammoth.extractRawText({ arrayBuffer });
+              const wordCount = result.value.split(/\s+/).filter(Boolean).length;
+              return Math.ceil(wordCount / 250);
+          }
+           return 1;
+      } catch (error) {
+          console.error("Error getting page count:", error);
+          toast({ variant: 'destructive', title: 'Error', description: `Could not parse page count for ${file.name}.` });
+          return undefined;
+      }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !uploadingFileForOrder) return;
+    
+    const file = e.target.files[0];
+    const originalConfig = uploadingFileForOrder.xeroxConfig;
+    const originalFileDetails = {
+        name: uploadingFileForOrder.productName,
+        pages: originalConfig?.pageCount,
+    };
+
+    if (file.name !== originalFileDetails.name) {
+        toast({
+            variant: "destructive",
+            title: "File Mismatch",
+            description: `Please upload the original file named "${originalFileDetails.name}".`,
+        });
+        return;
+    }
+    
+    setIsUploading(true);
+
+    const newPageCount = await getPageCount(file);
+    if (newPageCount !== originalFileDetails.pages) {
+        toast({
+            variant: "destructive",
+            title: "Page Count Mismatch",
+            description: `The uploaded file has ${newPageCount} pages, but the original order was for ${originalFileDetails.pages} pages. Please upload the correct file.`,
+            duration: 9000
+        });
+        setIsUploading(false);
+        return;
+    }
+
+    try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        
+        if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed');
+        
+        await updateOrderWithDocumentUrl(uploadingFileForOrder.id, data.url);
+
+        toast({ title: "Upload Successful", description: "Your document has been linked to the order." });
+        setUploadingFileForOrder(null);
+        fetchOrdersAndOptions(); // Refresh data
+    } catch (err: any) {
+        toast({ variant: "destructive", title: "Upload Failed", description: err.message });
+    } finally {
+        setIsUploading(false);
+    }
+  };
+
 
   const getOptionName = (type: 'paperType' | 'colorOption' | 'formatType' | 'printRatio' | 'bindingType' | 'laminationType', id: string): string => {
       if (!id || id === 'none') return 'N/A';
@@ -169,6 +252,14 @@ export default function OrderGroupDetailPage() {
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to All Orders
       </Button>
+      
+      <Input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileSelect}
+        disabled={isUploading}
+      />
 
       <h1 className="font-headline text-2xl font-bold tracking-tight lg:text-3xl mb-2">
         Order Details
@@ -212,7 +303,7 @@ export default function OrderGroupDetailPage() {
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                      <div className="relative h-24 w-24 flex-shrink-0 bg-muted rounded-md overflow-hidden flex items-center justify-center">
                         {isXerox ? (
                             <FileText className="h-12 w-12 text-blue-500" />
@@ -222,16 +313,37 @@ export default function OrderGroupDetailPage() {
                             <ShoppingCart className="h-12 w-12 text-muted-foreground" />
                         )}
                     </div>
-                    <div className="flex-grow space-y-1 text-sm">
-                        <p><span className="font-medium">Quantity:</span> {order.quantity}</p>
-                        <p><span className="font-medium">Price per item:</span> Rs {order.price.toFixed(2)}</p>
-                        <p><span className="font-medium">Total:</span> Rs {(order.price * order.quantity).toFixed(2)}</p>
-                        {isXerox && order.productImage && (
-                          <Button variant="link" asChild className="p-0 h-auto">
-                              <a href={order.productImage} target="_blank" rel="noopener noreferrer">
-                                <LinkIcon className="mr-2 h-4 w-4"/> View Uploaded Document
-                              </a>
-                          </Button>
+                    <div className="flex-grow space-y-2">
+                        <div className="text-sm">
+                            <p><span className="font-medium">Quantity:</span> {order.quantity}</p>
+                            <p><span className="font-medium">Price per item:</span> Rs {order.price.toFixed(2)}</p>
+                            <p><span className="font-medium">Total:</span> Rs {(order.price * order.quantity).toFixed(2)}</p>
+                        </div>
+                        {isXerox && (
+                          order.productImage ? (
+                            <Button variant="outline" asChild className="w-full sm:w-auto">
+                                <a href={order.productImage} target="_blank" rel="noopener noreferrer">
+                                  <LinkIcon className="mr-2 h-4 w-4"/> View Uploaded Document
+                                </a>
+                            </Button>
+                          ) : (
+                             <Button 
+                                variant="secondary" 
+                                className="w-full sm:w-auto"
+                                onClick={() => {
+                                  setUploadingFileForOrder(order);
+                                  fileInputRef.current?.click();
+                                }}
+                                disabled={isUploading}
+                              >
+                                {isUploading && uploadingFileForOrder?.id === order.id ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <UploadCloud className="mr-2 h-4 w-4" />
+                                )}
+                                Upload Document
+                             </Button>
+                          )
                         )}
                     </div>
                 </div>

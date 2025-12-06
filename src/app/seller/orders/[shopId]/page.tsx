@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, X, User, Package, FileText, Phone, Truck, MapPin, Clock, CheckCircle, AlertTriangle, Undo2, Repeat, XCircle, Link as LinkIcon } from 'lucide-react';
+import { Check, X, User, Package, FileText, Phone, Truck, MapPin, Clock, CheckCircle, AlertTriangle, Undo2, Repeat, XCircle, Link as LinkIcon, FileWarning } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
@@ -345,8 +346,7 @@ export default function ManageShopOrdersPage() {
                     const deliveryCharge = order.deliveryCharge || 0;
                     const itemQuantity = order.quantity || 1;
                     const totalItemPrice = (itemPrice * itemQuantity) + deliveryCharge;
-                    const isDriveLink = order.productImage && order.productImage.includes('drive.google.com');
-
+                    
                     let details: { label: string; value: string | number }[] = [];
                     if (isXerox && xeroxConfig) {
                         details = [
@@ -365,7 +365,7 @@ export default function ManageShopOrdersPage() {
                           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                             <div className="flex gap-4">
                                 <div className="relative h-16 w-16 flex-shrink-0 bg-muted rounded-md overflow-hidden">
-                                    {order.productImage && !isDriveLink ? (
+                                    {order.productImage ? (
                                         <Image src={order.productImage} alt={order.productName} fill className="object-cover" />
                                     ) : (
                                         <FileText className="h-8 w-8 text-muted-foreground m-auto" />
@@ -373,11 +373,6 @@ export default function ManageShopOrdersPage() {
                                 </div>
                                 <div>
                                     <p className="font-semibold">{order.productName}</p>
-                                    {isDriveLink && order.productImage && (
-                                        <a href={order.productImage} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-sm hover:underline flex items-center gap-1">
-                                            <LinkIcon className="h-3 w-3" /> View Document
-                                        </a>
-                                    )}
                                     <p className="text-sm text-muted-foreground">Quantity: {itemQuantity}</p>
                                     <p className="text-sm text-muted-foreground">Price: Rs {itemPrice.toFixed(2)}</p>
                                     {deliveryCharge > 0 && <p className="text-sm text-muted-foreground">Delivery: Rs {deliveryCharge.toFixed(2)}</p>}
@@ -401,6 +396,20 @@ export default function ManageShopOrdersPage() {
                                 )}
                             </div>
                           </div>
+                           {isXerox ? (
+                                order.productImage ? (
+                                    <Button variant="outline" asChild className="w-full sm:w-auto">
+                                        <a href={order.productImage} target="_blank" rel="noopener noreferrer">
+                                            <LinkIcon className="mr-2 h-4 w-4"/> View Document
+                                        </a>
+                                    </Button>
+                                ) : (
+                                    <div className="flex items-center gap-2 text-sm text-destructive p-2 border border-destructive/50 rounded-md">
+                                        <FileWarning className="h-5 w-5" />
+                                        <p>User has not uploaded document.</p>
+                                    </div>
+                                )
+                            ) : null}
                           {isXerox && details.length > 0 && (
                             <Card className="bg-muted/50">
                                 <CardHeader className="p-2">
@@ -563,5 +572,3 @@ export default function ManageShopOrdersPage() {
     </>
   );
 }
-
-    
