@@ -424,7 +424,7 @@ export default function XeroxCheckoutPage() {
 
   return (
     <>
-      <Dialog open={orderPlaced}>
+      <Dialog open={orderPlaced} onOpenChange={() => {}}>
         <DialogContent hideCloseButton>
             <DialogHeader><DialogTitle className="sr-only">Order Placed</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center justify-center p-8 text-center">
