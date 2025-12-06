@@ -4,14 +4,14 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-provider';
 import { useState, useEffect, useMemo } from 'react';
-import { getOrdersBySeller, updateOrderStatus, approveOrderReturn, rejectOrderReturn, issueReplacement } from '@/lib/data';
+import { getOrdersBySeller, updateOrderStatus, approveOrderReturn, rejectOrderReturn, issueReplacement, getXeroxOptions } from '@/lib/data';
 import { getAllUsers } from '@/lib/users';
-import type { Order, UserProfile, OrderStatus } from '@/lib/types';
+import type { Order, UserProfile, OrderStatus, XeroxOption } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, X, User, Package, FileText, Phone, Truck, MapPin, Clock, CheckCircle, AlertTriangle, Undo2, Repeat, XCircle } from 'lucide-react';
+import { Check, X, User, Package, FileText, Phone, Truck, MapPin, Clock, CheckCircle, AlertTriangle, Undo2, Repeat, XCircle, Link as LinkIcon } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
@@ -26,6 +26,8 @@ import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import OrderTracker from '@/components/order-tracker';
 import { Badge } from '@/components/ui/badge';
+import { HARDCODED_XEROX_OPTIONS } from '@/lib/xerox-options';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 
 type GroupedOrders = {
   [userId: string]: {
@@ -51,7 +53,7 @@ const statusConfig: { [key in Order['status']]: { icon: React.ElementType, label
   "Shipped": { icon: Truck, label: "Shipped", descriptiveLabel: "Shipping" },
   "Out for Delivery": { icon: Truck, label: "Out for Delivery", descriptiveLabel: "Out for Delivery" },
   "Delivered": { icon: CheckCircle, label: "Delivered", descriptiveLabel: "Delivered" },
-  "Cancelled": { icon: XCircle, label: "Cancelled", descriptiveLabel: "Cancelled by You" },
+  "Cancelled": { icon: XCircle, label: "Cancelled", descriptiveLabel: "Cancelled by User" },
   "Rejected": { icon: AlertTriangle, label: "Rejected", descriptiveLabel: "Rejected by Seller" },
   "Return Requested": { icon: Undo2, label: "Return Requested", descriptiveLabel: "Return Requested" },
   "Return Approved": { icon: CheckCircle, label: "Return Approved", descriptiveLabel: "Return Approved" },
@@ -93,17 +95,28 @@ export default function ManageShopOrdersPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
 
+  const [paperTypes, setPaperTypes] = useState<XeroxOption[]>([]);
+  const [bindingTypes, setBindingTypes] = useState<XeroxOption[]>([]);
+  const [laminationTypes, setLaminationTypes] = useState<XeroxOption[]>([]);
+
   const isEmployeeOnly = user?.roles.includes('employee') && !user.roles.includes('seller');
 
   const fetchOrdersAndUsers = async () => {
     if (!shopId) return;
     setIsLoading(true);
     try {
-      const [shopOrders, allUsers] = await Promise.all([
+      const [shopOrders, allUsers, fetchedPaperTypes, fetchedBindingTypes, fetchedLaminationTypes] = await Promise.all([
         getOrdersBySeller(shopId),
-        getAllUsers()
+        getAllUsers(),
+        getXeroxOptions('paperType'),
+        getXeroxOptions('bindingType'),
+        getXeroxOptions('laminationType'),
       ]);
       setOrders(shopOrders);
+
+      setPaperTypes(fetchedPaperTypes);
+      setBindingTypes(fetchedBindingTypes);
+      setLaminationTypes(fetchedLaminationTypes);
 
       const usersMap = new Map(allUsers.map(u => [u.uid, u]));
 
@@ -245,6 +258,17 @@ export default function ManageShopOrdersPage() {
         userCancelled: orders.filter(o => o.status === 'Cancelled').length
     };
   }, [orders]);
+  
+  const getOptionName = (type: 'paperType' | 'colorOption' | 'formatType' | 'printRatio' | 'bindingType' | 'laminationType', id: string): string => {
+    if (!id || id === 'none') return 'N/A';
+    if (type === 'paperType') return paperTypes.find(o => o.id === id)?.name || id;
+    if (type === 'bindingType') return bindingTypes.find(o => o.id === id)?.name || id;
+    if (type === 'laminationType') return laminationTypes.find(o => o.id === id)?.name || id;
+    if (type === 'colorOption') return HARDCODED_XEROX_OPTIONS.colorOptions.find(o => o.id === id)?.name || id;
+    if (type === 'formatType') return HARDCODED_XEROX_OPTIONS.formatTypes.find(o => o.id === id)?.name || id;
+    if (type === 'printRatio') return HARDCODED_XEROX_OPTIONS.printRatios.find(o => o.id === id)?.name || id;
+    return id;
+};
 
 
   const renderOrderList = (filteredGroupedOrders: GroupedOrders, listType: 'pending' | 'active' | 'returns' | 'completed') => {
@@ -302,6 +326,9 @@ export default function ManageShopOrdersPage() {
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">
                   {orders.map(order => {
+                    const isXerox = order.category === 'xerox';
+                    const xeroxConfig = order.xeroxConfig;
+                    
                     const isReplacement = order.returnType === 'replacement';
                     const baseStatusInfo = statusConfig[order.status];
                     let StatusIcon = baseStatusInfo?.icon || Package;
@@ -317,8 +344,21 @@ export default function ManageShopOrdersPage() {
                     const itemPrice = order.price || 0;
                     const deliveryCharge = order.deliveryCharge || 0;
                     const itemQuantity = order.quantity || 1;
-                    const totalItemPrice = (itemPrice + deliveryCharge) * itemQuantity;
+                    const totalItemPrice = (itemPrice * itemQuantity) + deliveryCharge;
                     const isDriveLink = order.productImage && order.productImage.includes('drive.google.com');
+
+                    let details: { label: string; value: string | number }[] = [];
+                    if (isXerox && xeroxConfig) {
+                        details = [
+                           { label: 'Paper', value: getOptionName('paperType', xeroxConfig.paperType) },
+                           { label: 'Color', value: getOptionName('colorOption', xeroxConfig.colorOption) },
+                           { label: 'Format', value: getOptionName('formatType', xeroxConfig.formatType) },
+                           { label: 'Ratio', value: getOptionName('printRatio', xeroxConfig.printRatio) },
+                           { label: 'Binding', value: getOptionName('bindingType', xeroxConfig.bindingType) },
+                           { label: 'Lamination', value: getOptionName('laminationType', xeroxConfig.laminationType) },
+                           { label: 'Instructions', value: xeroxConfig.message },
+                        ].filter(d => d.value && d.value !== 'N/A');
+                    }
 
                     return (
                       <div key={order.id} className="p-4 border rounded-lg flex flex-col gap-4">
@@ -334,8 +374,8 @@ export default function ManageShopOrdersPage() {
                                 <div>
                                     <p className="font-semibold">{order.productName}</p>
                                     {isDriveLink && order.productImage && (
-                                        <a href={order.productImage} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-sm hover:underline">
-                                            View Document
+                                        <a href={order.productImage} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-sm hover:underline flex items-center gap-1">
+                                            <LinkIcon className="h-3 w-3" /> View Document
                                         </a>
                                     )}
                                     <p className="text-sm text-muted-foreground">Quantity: {itemQuantity}</p>
@@ -361,6 +401,25 @@ export default function ManageShopOrdersPage() {
                                 )}
                             </div>
                           </div>
+                          {isXerox && details.length > 0 && (
+                            <Card className="bg-muted/50">
+                                <CardHeader className="p-2">
+                                    <CardTitle className="text-sm">Print Configuration</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-2">
+                                    <Table>
+                                        <TableBody>
+                                        {details.map(detail => (
+                                            <TableRow key={detail.label} className="border-0">
+                                                <TableCell className="p-1 text-xs text-muted-foreground">{detail.label}</TableCell>
+                                                <TableCell className="p-1 text-xs font-medium">{detail.value}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                          )}
                            {order.status === 'Return Requested' && (
                                 <>
                                 <Separator />

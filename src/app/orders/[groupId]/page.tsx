@@ -298,7 +298,8 @@ export default function OrderGroupDetailPage() {
                 </CardFooter>
             )}
           </Card>
-        )})}
+        );
+        })}
       </div>
     </div>
     </>

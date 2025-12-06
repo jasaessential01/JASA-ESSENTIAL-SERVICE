@@ -242,6 +242,7 @@ export default function XeroxCheckoutPage() {
             altMobiles: mobileData.altMobiles?.filter(m => m.value),
             status: 'Pending Confirmation',
             category: 'xerox',
+            xeroxConfig: job.config,
         });
     });
 
@@ -448,46 +449,6 @@ export default function XeroxCheckoutPage() {
         <Form {...checkoutForm}>
           <form onSubmit={checkoutForm.handleSubmit(onCheckoutSubmit)} className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-8">
-                {xeroxJobs.map((job, index) => {
-                    const { pricePerPage, bindingCost, laminationCost, finalPrice } = calculatePriceDetails(job);
-                    const details = [
-                        { label: 'Pages', value: job.pageCount },
-                        { label: 'Quantity', value: job.config.quantity },
-                        { label: 'Paper', value: getOptionName('paperType', job.config.paperType) },
-                        { label: 'Color', value: getOptionName('colorOption', job.config.colorOption) },
-                        { label: 'Format', value: getOptionName('formatType', job.config.formatType) },
-                        { label: 'Ratio', value: getOptionName('printRatio', job.config.printRatio) },
-                        { label: 'Binding', value: getOptionName('bindingType', job.config.bindingType) },
-                        { label: 'Lamination', value: getOptionName('laminationType', job.config.laminationType) },
-                        { label: 'Instructions', value: job.config.message },
-                    ].filter(d => d.value);
-
-                    return (
-                        <Card key={job.id}>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Document {index + 1}: {job.fileDetails.name}</CardTitle>
-                                <CardDescription><a href={job.fileDetails.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-1"><LinkIcon className="h-3 w-3"/>View Uploaded File</a></CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div>
-                                        <h4 className="font-semibold mb-2">Configuration</h4>
-                                        <Table><TableBody>{details.map(d => (<TableRow key={d.label} className="border-0"><TableCell className="p-1 w-24 text-muted-foreground">{d.label}:</TableCell><TableCell className="p-1 font-medium">{d.value}</TableCell></TableRow>))}</TableBody></Table>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold mb-2">Price Breakdown</h4>
-                                        <Table><TableBody>
-                                            <TableRow className="border-0"><TableCell className="p-1 text-muted-foreground">Price per page:</TableCell><TableCell className="p-1 font-medium text-right">Rs {pricePerPage.toFixed(2)}</TableCell></TableRow>
-                                            {bindingCost > 0 && <TableRow className="border-0"><TableCell className="p-1 text-muted-foreground">Binding Cost:</TableCell><TableCell className="p-1 font-medium text-right">Rs {bindingCost.toFixed(2)}</TableCell></TableRow>}
-                                            {laminationCost > 0 && <TableRow className="border-0"><TableCell className="p-1 text-muted-foreground">Lamination Cost:</TableCell><TableCell className="p-1 font-medium text-right">Rs {laminationCost.toFixed(2)}</TableCell></TableRow>}
-                                            <TableRow className="border-t"><TableCell className="p-1 font-bold">Total Document Price:</TableCell><TableCell className="p-1 font-bold text-right text-lg">Rs {finalPrice.toFixed(2)}</TableCell></TableRow>
-                                        </TableBody></Table>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
                 {renderAddressSelection()}
                 {renderMobileSection()}
                 {renderSellerSelection()}
