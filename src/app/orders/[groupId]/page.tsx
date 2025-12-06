@@ -205,7 +205,7 @@ export default function OrderGroupDetailPage() {
                         <CardTitle className="line-clamp-2">{order.productName}</CardTitle>
                         <CardDescription>Order ID: {order.id}</CardDescription>
                     </div>
-                     <Badge variant={order.status.includes('Cancelled') || order.status.includes('Rejected') ? 'destructive' : 'secondary'}>
+                     <Badge variant={order.status === 'Cancelled' ? 'destructive' : (order.status.includes('Rejected') ? 'destructive' : 'secondary')}>
                         {order.status === 'Cancelled' ? 'Cancelled by You' : order.status}
                      </Badge>
                 </div>
