@@ -10,44 +10,39 @@ service cloud.firestore {
              'admin' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles;
     }
     
-    // Helper function to check if a user is a seller for a specific shop
     function isSellerForShop(shopId) {
-        return exists(/databases/$(database)/documents/shops/$(shopId)) &&
-               request.auth.uid in get(/databases/$(database)/documents/shops/$(shopId)).data.ownerIds;
+      return exists(/databases/$(database)/documents/shops/$(shopId)) &&
+             request.auth.uid in get(/databases/$(database)/documents/shops/$(shopId)).data.ownerIds;
     }
 
-    // Users collection
     match /users/{userId} {
       allow read, write: if request.auth.uid == userId;
       allow read, write: if isAdmin();
     }
     
     match /users/{document=**} {
-        allow read: if isAdmin();
+      allow read: if isAdmin();
     }
     
-    // Notifications collection
     match /notifications/{notificationId} {
-      allow create: if true; // Allow backend functions (or in this case, server-side logic) to create notifications
-      allow read, update: if request.auth.uid == resource.data.userId; // User can read and update their own notifications (e.g., mark as read)
+      allow create: if true;
+      allow read, update: if request.auth.uid == resource.data.userId;
     }
 
-    // Orders collection
     match /orders/{orderId} {
-      // User can create their own order
       allow create: if request.auth.uid == request.resource.data.userId;
-      // User can read their own orders
-      allow read: if request.auth.uid == resource.data.userId || isAdmin();
+      allow read: if request.auth.uid == resource.data.userId || isAdmin() || isSellerForShop(resource.data.sellerId);
       
-      // User can update their own order only to cancel it, and only if it's pending
+      // User can update their own order ONLY to cancel it, and ONLY if the current status is 'Pending Confirmation'
       allow update: if request.auth.uid == resource.data.userId &&
                        request.resource.data.status == 'Cancelled' &&
                        resource.data.status == 'Pending Confirmation';
                        
-      // Sellers can read and update orders for their shop
-      allow read, update: if isSellerForShop(resource.data.sellerId);
+      // Sellers can update orders for their shop
+      allow update: if isSellerForShop(resource.data.sellerId);
+      
       // Admins have full access
-      allow read, update, delete: if isAdmin();
+      allow update, delete: if isAdmin();
     }
     
     match /paperSamples/{sampleId} {
@@ -55,7 +50,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Public read-only collections
     match /products/{productId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -93,20 +87,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // Xerox Form Option Collections
     match /paperTypes/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /colorOptions/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /formatTypes/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /printRatios/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }

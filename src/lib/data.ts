@@ -1,4 +1,5 @@
 
+
 import type { Product, Category, Brand, Author, ProductType, HomepageContent, XeroxService, XeroxOption, XeroxOptionType, OrderSettings, Order, OrderStatus, Notification, PaperSample } from './types';
 import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, setDoc, writeBatch, runTransaction } from 'firebase/firestore';
@@ -649,15 +650,29 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus, re
 };
 
 export const cancelOrder = async (orderId: string, reason: string): Promise<void> => {
+    const orderDocRef = doc(db, 'orders', orderId);
     try {
-        const orderDocRef = doc(db, 'orders', orderId);
-        await updateDoc(orderDocRef, {
-            status: "Cancelled",
-            cancellationReason: reason,
+        await runTransaction(db, async (transaction) => {
+            const orderDoc = await transaction.get(orderDocRef);
+            if (!orderDoc.exists()) {
+                throw new Error("Order not found.");
+            }
+
+            const orderData = orderDoc.data();
+            if (orderData.status !== 'Pending Confirmation') {
+                throw new Error("This item cannot be cancelled as it has already been confirmed by the seller.");
+            }
+
+            transaction.update(orderDocRef, {
+                status: "Cancelled",
+                cancellationReason: reason,
+            });
         });
-        // You might want to send a notification to the seller here as well
     } catch (error) {
         console.error("Error cancelling order:", error);
+        if (error instanceof Error) {
+            throw error; // Re-throw the specific error message
+        }
         throw new Error("Failed to cancel order.");
     }
 };
