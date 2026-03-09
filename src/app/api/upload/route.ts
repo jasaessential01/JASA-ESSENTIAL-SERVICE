@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         const fileMetadata: any = { name: file.name };
 
         const media = {
-            mimeType: file.type,
+            mimeType: file.type || "application/octet-stream",
             body: fs.createReadStream(tempFilePath),
         };
 
